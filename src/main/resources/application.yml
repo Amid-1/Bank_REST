@@ -1,8 +1,65 @@
 #
 # application.yml — главный конфигурационный файл Spring Boot.
+#
+# Что нужно сделать:
+#  - Указать настройки подключения к базе данных.
+#  - Указать порт приложения.
+#  - Настроить параметры безопасности и JWT.
+#  - Включить Swagger UI.
+#
 
-Что нужно сделать:
-  - Указать настройки подключения к базе данных.
-  - Указать порт приложения.
-  - Настроить параметры безопасности и JWT.
-  - Включить Swagger UI.
+server:
+  port: ${SERVER_PORT:8080}
+
+spring:
+  application:
+    name: bank-cards
+
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/card_db}
+    username: ${SPRING_DATASOURCE_USERNAME:admin}
+    password: ${SPRING_DATASOURCE_PASSWORD:secret}
+
+  jpa:
+    hibernate:
+      ddl-auto: none
+    properties:
+      hibernate:
+        format_sql: true
+
+  sql:
+    init:
+      mode: never
+
+  liquibase:
+    enabled: true
+    change-log: classpath:/db/migration/db.changelog-master.yaml
+
+springdoc:
+  api-docs:
+    enabled: true
+  swagger-ui:
+    enabled: true
+    path: /swagger-ui.html
+  override-with-generic-response: false
+
+logging:
+  level:
+    org.springframework.security: WARN
+    org.springframework.security.web.FilterChainProxy: WARN
+    liquibase.precondition: WARN
+
+jwt:
+  secret: ${JWT_SECRET:change_me}
+  expiration: ${JWT_EXPIRATION_MS:86400000}
+
+encryptor:
+  password: ${ENCRYPTOR_PASSWORD:change_me}
+  salt: ${ENCRYPTOR_SALT:change_me}
+
+app:
+  admin:
+    name: ${APP_ADMIN_NAME:admin}
+    password: ${APP_ADMIN_PASSWORD:change_me}
+  hashEncoder:
+    pepper: ${APP_HASHENCODER_PEPPER:change_me}

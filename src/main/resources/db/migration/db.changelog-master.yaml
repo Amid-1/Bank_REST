@@ -1,0 +1,20 @@
+# db.changelog-master.yaml
+databaseChangeLog:
+  - preConditions:
+      - onFail: WARN
+      - onError: HALT
+      - or:
+          - and:
+              - dbms:
+                  type: postgresql
+              - runningAs:
+                  username: admin
+          - and:
+              - dbms:
+                  type: h2
+              - runningAs:
+                  username: SA
+
+  - includeAll:
+      path: changes
+      relativeToChangelogFile: true

@@ -59,6 +59,10 @@ lib/
 *~
 .run/
 
+.env
+/volumes/
+.idea/
+
 
 
 
