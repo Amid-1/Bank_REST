@@ -1,0 +1,230 @@
+databaseChangeLog:
+  - changeSet:
+      id: 001-init
+      author: suprunov
+      changes:
+
+        # users
+        - createTable:
+            tableName: users
+            columns:
+              - column:
+                  name: id
+                  type: uuid
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: name
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: email
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: password_hash
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: role
+                  type: varchar(30)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: timestamp
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+
+        - addUniqueConstraint:
+            tableName: users
+            columnNames: email
+            constraintName: uk_users_email
+
+        # cards
+        - createTable:
+            tableName: cards
+            columns:
+              - column:
+                  name: id
+                  type: uuid
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: encrypted_card_number
+                  type: text
+                  constraints:
+                    nullable: false
+              - column:
+                  name: masked_card_number
+                  type: varchar(32)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: expiration_date
+                  type: date
+                  constraints:
+                    nullable: false
+              - column:
+                  name: balance
+                  type: numeric(19,2)
+                  defaultValueNumeric: 0
+                  constraints:
+                    nullable: false
+              - column:
+                  name: status
+                  type: varchar(30)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: user_id
+                  type: uuid
+                  constraints:
+                    nullable: false
+              - column:
+                  name: pan_hash
+                  type: varchar(64)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: timestamp
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+
+        - addForeignKeyConstraint:
+            baseTableName: cards
+            baseColumnNames: user_id
+            referencedTableName: users
+            referencedColumnNames: id
+            constraintName: fk_cards_user
+
+        - createIndex:
+            tableName: cards
+            indexName: ix_cards_user_id
+            columns:
+              - column: { name: user_id }
+
+        - addUniqueConstraint:
+            tableName: cards
+            columnNames: encrypted_card_number
+            constraintName: uk_cards_encrypted_number
+
+        - addUniqueConstraint:
+            tableName: cards
+            columnNames: pan_hash
+            constraintName: uk_cards_pan_hash
+
+        # transfers_record
+        - createTable:
+            tableName: transfers_record
+            columns:
+              - column:
+                  name: id
+                  type: uuid
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: from_card_id
+                  type: uuid
+                  constraints:
+                    nullable: false
+              - column:
+                  name: to_card_id
+                  type: uuid
+                  constraints:
+                    nullable: false
+              - column:
+                  name: amount
+                  type: numeric(19,2)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: timestamp
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+
+        - addForeignKeyConstraint:
+            baseTableName: transfers_record
+            baseColumnNames: from_card_id
+            referencedTableName: cards
+            referencedColumnNames: id
+            constraintName: fk_transfers_from_card
+
+        - addForeignKeyConstraint:
+            baseTableName: transfers_record
+            baseColumnNames: to_card_id
+            referencedTableName: cards
+            referencedColumnNames: id
+            constraintName: fk_transfers_to_card
+
+        - createIndex:
+            tableName: transfers_record
+            indexName: ix_transfers_created_at
+            columns:
+              - column: { name: created_at }
+
+        #  card_block_request
+        - createTable:
+            tableName: card_block_request
+            columns:
+              - column:
+                  name: id
+                  type: uuid
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: card_id
+                  type: uuid
+                  constraints:
+                    nullable: false
+              - column:
+                  name: initiator_id
+                  type: uuid
+                  constraints:
+                    nullable: false
+              - column:
+                  name: status
+                  type: varchar(30)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: reason
+                  type: varchar(500)
+              - column:
+                  name: created_at
+                  type: timestamp
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+
+        - addForeignKeyConstraint:
+            baseTableName: card_block_request
+            baseColumnNames: card_id
+            referencedTableName: cards
+            referencedColumnNames: id
+            constraintName: fk_blockreq_card
+
+        - addForeignKeyConstraint:
+            baseTableName: card_block_request
+            baseColumnNames: initiator_id
+            referencedTableName: users
+            referencedColumnNames: id
+            constraintName: fk_blockreq_initiator
+
+        - createIndex:
+            tableName: card_block_request
+            indexName: ix_blockreq_status
+            columns:
+              - column: { name: status }
