@@ -44,12 +44,14 @@ public class BankCard {
     @Column(name = "expiration_date", nullable = false)
     private LocalDate expirationDate;
 
+    @Builder.Default
     @Column(nullable = false, precision = 19, scale = 2)
-    private BigDecimal balance;
+    private BigDecimal balance = BigDecimal.ZERO;
 
+    @Builder.Default
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)
-    private BankCardStatus status;
+    private BankCardStatus status = BankCardStatus.ACTIVE;
 
     @ManyToOne(optional = false)
     @JoinColumn(name = "user_id", nullable = false)

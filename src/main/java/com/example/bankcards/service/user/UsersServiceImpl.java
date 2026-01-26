@@ -1,7 +1,7 @@
 package com.example.bankcards.service.user;
 
 import com.example.bankcards.dto.user.UserCreateRequest;
-import com.example.bankcards.dto.user.UserResponseDTO;
+import com.example.bankcards.dto.user.UserResponse;
 import com.example.bankcards.entity.user.AppUser;
 import com.example.bankcards.entity.user.UserRole;
 import com.example.bankcards.repository.UsersRepository;
@@ -18,7 +18,7 @@ public class UsersServiceImpl implements UsersService {
     private final PasswordEncoder passwordEncoder;
 
     @Override
-    public UserResponseDTO create(UserCreateRequest request) {
+    public UserResponse create(UserCreateRequest request) {
         if (usersRepository.existsByEmail(request.email())) {
             throw new IllegalStateException("User with email already exists");
         }
