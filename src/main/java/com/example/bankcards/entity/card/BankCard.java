@@ -1,7 +1,5 @@
 package com.example.bankcards.entity.card;
 
-
-import com.example.bankcards.entity.request.CardBlockStatus;
 import com.example.bankcards.entity.user.AppUser;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -10,7 +8,9 @@ import jakarta.persistence.Table;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.GenerationType;
-import jakarta.persistence.;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.JoinColumn;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -24,33 +24,37 @@ import java.util.UUID;
 
 @Entity
 @Table(name = "cards")
-@NoArgsConstructor
-@AllArgsConstructor
 @Getter
 @Setter
+@NoArgsConstructor
+@AllArgsConstructor
 @Builder
 public class BankCard {
+
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @Column(name = "encrypted_card_number", unique = true)
+    @Column(name = "encrypted_card_number", nullable = false, unique = true)
     private String encryptedCardNumber;
 
-    @Column(name = "masked_card_number")
+    @Column(name = "masked_card_number", nullable = false, length = 32)
     private String maskedCardNumber;
 
-    @Column(name = "expiration_date")
+    @Column(name = "expiration_date", nullable = false)
     private LocalDate expirationDate;
 
+    @Column(nullable = false, precision = 19, scale = 2)
     private BigDecimal balance;
 
     @Enumerated(EnumType.STRING)
-    private CardBlockStatus status;
+    @Column(name = "status", nullable = false)
+    private BankCardStatus status;
 
-    @ManyToOne
-    @JoinColumn(name = "user_id")
+    @ManyToOne(optional = false)
+    @JoinColumn(name = "user_id", nullable = false)
     private AppUser owner;
 
-    private String hash;
+    @Column(name = "pan_hash", nullable = false, length = 64, unique = true)
+    private String panHash;
 }

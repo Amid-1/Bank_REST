@@ -11,6 +11,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.Enumerated;
+import jakarta.persistence.Column;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -22,24 +23,29 @@ import java.util.UUID;
 
 @Entity
 @Table(name = "card_block_request")
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-@Getter
-@Setter
 public class CardBlockRequest {
+
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @ManyToOne
-    @JoinColumn(name = "card_id")
+    @ManyToOne(optional = false)
+    @JoinColumn(name = "card_id", nullable = false)
     private BankCard card;
 
-    @ManyToOne
-    @JoinColumn(name = "initiator_id")
+    @ManyToOne(optional = false)
+    @JoinColumn(name = "initiator_id", nullable = false)
     private AppUser initiator;
 
     @Enumerated(EnumType.STRING)
-    private CardBlockStatus state;
+    @Column(name = "status", nullable = false)
+    private CardBlockStatus status;
+
+    @Column(length = 500)
+    private String reason;
 }
