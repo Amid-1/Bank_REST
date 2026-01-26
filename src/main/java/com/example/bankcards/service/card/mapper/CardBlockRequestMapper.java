@@ -1,4 +1,4 @@
-package com.example.bankcards.service.block.mapper;
+package com.example.bankcards.service.card.mapper;
 
 import com.example.bankcards.dto.card.CardBlockRequestResponse;
 import com.example.bankcards.entity.request.CardBlockRequest;

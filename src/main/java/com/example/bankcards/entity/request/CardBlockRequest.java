@@ -17,6 +17,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -42,14 +43,16 @@ public class CardBlockRequest {
     @JoinColumn(name = "initiator_id", nullable = false)
     private AppUser initiator;
 
+    @Builder.Default
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)
-    private CardBlockStatus status;
+    private CardBlockStatus status = CardBlockStatus.WAITING;
 
     @Column(length = 500)
     private String reason;
 
-    @Column(name = "created_at", nullable = false, updatable = false, insertable = false)
+    @CreationTimestamp
+    @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
 }
