@@ -1,22 +1,5 @@
-# db.changelog-master.yaml
+# db/migration/db.changelog-master.yaml
 databaseChangeLog:
-    - preConditions:
-          - onFail: WARN
-          - onError: HALT
-          - or:
-                - and:
-                      - dbms: { type: postgresql }
-                      - runningAs: { username: admin }
-                - and:
-                      - dbms: { type: h2 }
-                      - runningAs: { username: SA }
-
-    - include:
-          file: changes/001-init.yaml
+    - includeAll:
+          path: changes
           relativeToChangelogFile: true
-
-    - include:
-          file: changes/002-citext.yaml
-          relativeToChangelogFile: true
-
-

@@ -1,0 +1,12 @@
+# db/migration/changes/002-enable-citext.yaml
+databaseChangeLog:
+  - changeSet:
+      id: 002-enable-citext
+      author: suprunov
+      preConditions:
+        - onFail: MARK_RAN
+        - dbms:
+            type: postgresql
+      changes:
+        - sql:
+            sql: CREATE EXTENSION IF NOT EXISTS citext;

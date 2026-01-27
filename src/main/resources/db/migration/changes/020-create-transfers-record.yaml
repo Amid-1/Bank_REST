@@ -1,0 +1,56 @@
+# db/migration/changes/020-create-transfers-record.yaml
+databaseChangeLog:
+  - changeSet:
+      id: 020-create-transfers-record
+      author: suprunov
+      changes:
+        - createTable:
+            tableName: transfers_record
+            columns:
+              - column:
+                  name: id
+                  type: uuid
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: from_card_id
+                  type: uuid
+                  constraints:
+                    nullable: false
+              - column:
+                  name: to_card_id
+                  type: uuid
+                  constraints:
+                    nullable: false
+              - column:
+                  name: amount
+                  type: numeric(19,2)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: timestamp
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+
+        - addForeignKeyConstraint:
+            baseTableName: transfers_record
+            baseColumnNames: from_card_id
+            referencedTableName: cards
+            referencedColumnNames: id
+            constraintName: fk_transfers_from_card
+
+        - addForeignKeyConstraint:
+            baseTableName: transfers_record
+            baseColumnNames: to_card_id
+            referencedTableName: cards
+            referencedColumnNames: id
+            constraintName: fk_transfers_to_card
+
+        - createIndex:
+            tableName: transfers_record
+            indexName: ix_transfers_created_at
+            columns:
+              - column: { name: created_at }

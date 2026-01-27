@@ -1,0 +1,80 @@
+# db/migration/changes/010-create-cards.yaml
+databaseChangeLog:
+  - changeSet:
+      id: 010-create-cards
+      author: suprunov
+      changes:
+        - createTable:
+            tableName: cards
+            columns:
+              - column:
+                  name: id
+                  type: uuid
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: encrypted_card_number
+                  type: text
+                  constraints:
+                    nullable: false
+              - column:
+                  name: masked_card_number
+                  type: varchar(32)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: expiration_date
+                  type: date
+                  constraints:
+                    nullable: false
+              - column:
+                  name: balance
+                  type: numeric(19,2)
+                  defaultValueNumeric: 0
+                  constraints:
+                    nullable: false
+              - column:
+                  name: status
+                  type: varchar(30)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: user_id
+                  type: uuid
+                  constraints:
+                    nullable: false
+              - column:
+                  name: pan_hash
+                  type: varchar(64)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: timestamp
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+
+        - addForeignKeyConstraint:
+            baseTableName: cards
+            baseColumnNames: user_id
+            referencedTableName: users
+            referencedColumnNames: id
+            constraintName: fk_cards_user
+
+        - createIndex:
+            tableName: cards
+            indexName: ix_cards_user_id
+            columns:
+              - column: { name: user_id }
+
+        - addUniqueConstraint:
+            tableName: cards
+            columnNames: encrypted_card_number
+            constraintName: uk_cards_encrypted_number
+
+        - addUniqueConstraint:
+            tableName: cards
+            columnNames: pan_hash
+            constraintName: uk_cards_pan_hash
