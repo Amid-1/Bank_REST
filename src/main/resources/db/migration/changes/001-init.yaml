@@ -1,3 +1,4 @@
+# 001-init.yaml
 databaseChangeLog:
   - changeSet:
       id: 001-init

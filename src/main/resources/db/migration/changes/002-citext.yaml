@@ -1,0 +1,25 @@
+# 002-citext.yaml
+databaseChangeLog:
+  - changeSet:
+      id: 002-enable-citext
+      author: you
+      preConditions:
+        - onFail: MARK_RAN
+        - dbms:
+            type: postgresql
+      changes:
+        - sql:
+            sql: CREATE EXTENSION IF NOT EXISTS citext;
+
+  - changeSet:
+      id: 003-users-email-citext
+      author: you
+      preConditions:
+        - onFail: MARK_RAN
+        - dbms:
+            type: postgresql
+      changes:
+        - modifyDataType:
+            tableName: users
+            columnName: email
+            newDataType: citext
