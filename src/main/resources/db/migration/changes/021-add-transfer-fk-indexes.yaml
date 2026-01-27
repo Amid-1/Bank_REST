@@ -1,0 +1,17 @@
+# db/migration/changes/021-add-transfer-fk-indexes.yaml
+databaseChangeLog:
+  - changeSet:
+      id: 021-add-transfer-fk-indexes
+      author: suprunov
+      changes:
+        - createIndex:
+            tableName: transfers_record
+            indexName: ix_transfers_from_card_id
+            columns:
+              - column: { name: from_card_id }
+
+        - createIndex:
+            tableName: transfers_record
+            indexName: ix_transfers_to_card_id
+            columns:
+              - column: { name: to_card_id }

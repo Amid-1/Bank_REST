@@ -10,6 +10,7 @@ databaseChangeLog:
               - column:
                   name: id
                   type: uuid
+                  defaultValueComputed: gen_random_uuid()
                   constraints:
                     primaryKey: true
                     nullable: false
@@ -68,11 +69,6 @@ databaseChangeLog:
             indexName: ix_cards_user_id
             columns:
               - column: { name: user_id }
-
-        - addUniqueConstraint:
-            tableName: cards
-            columnNames: encrypted_card_number
-            constraintName: uk_cards_encrypted_number
 
         - addUniqueConstraint:
             tableName: cards

@@ -1,0 +1,9 @@
+# db/migration/changes/011-drop-uk-cards-encrypted.yaml
+databaseChangeLog:
+  - changeSet:
+      id: 011-drop-uk-cards-encrypted
+      author: suprunov
+      changes:
+        - dropUniqueConstraint:
+            tableName: cards
+            constraintName: uk_cards_encrypted_number

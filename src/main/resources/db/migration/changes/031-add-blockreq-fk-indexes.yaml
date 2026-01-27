@@ -1,0 +1,17 @@
+# db/migration/changes/031-add-blockreq-fk-indexes.yaml
+databaseChangeLog:
+  - changeSet:
+      id: 031-add-blockreq-fk-indexes
+      author: suprunov
+      changes:
+        - createIndex:
+            tableName: card_block_request
+            indexName: ix_blockreq_card_id
+            columns:
+              - column: { name: card_id }
+
+        - createIndex:
+            tableName: card_block_request
+            indexName: ix_blockreq_initiator_id
+            columns:
+              - column: { name: initiator_id }

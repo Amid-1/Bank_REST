@@ -2,11 +2,8 @@
 databaseChangeLog:
   - changeSet:
       id: 003-users-email-citext
-      author: you
-      preConditions:
-        - onFail: MARK_RAN
-        - dbms:
-            type: postgresql
+      author: suprunov
+      dbms: postgresql
       changes:
         - modifyDataType:
             tableName: users

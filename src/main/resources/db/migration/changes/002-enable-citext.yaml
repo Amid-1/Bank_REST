@@ -3,10 +3,8 @@ databaseChangeLog:
   - changeSet:
       id: 002-enable-citext
       author: suprunov
-      preConditions:
-        - onFail: MARK_RAN
-        - dbms:
-            type: postgresql
+      dbms: postgresql
+      failOnError: true
       changes:
         - sql:
             sql: CREATE EXTENSION IF NOT EXISTS citext;
