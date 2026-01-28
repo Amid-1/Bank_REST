@@ -15,9 +15,7 @@ import java.util.UUID;
 public interface CardBlockRequestsRepository extends JpaRepository<CardBlockRequest, UUID>,
         JpaSpecificationExecutor<CardBlockRequest> {
 
-    // Запретить плодить несколько WAITING заявок по одной карте
     boolean existsByCard_IdAndStatus(UUID cardId, CardBlockStatus status);
 
-    // Админский список по статусу
     Page<CardBlockRequest> findAllByStatus(CardBlockStatus status, Pageable pageable);
 }

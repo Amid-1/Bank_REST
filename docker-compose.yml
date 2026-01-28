@@ -1,5 +1,6 @@
-# 
+#
 # docker-compose.yml — определяет сервисы для разработки и тестирования.
+#
 
 services:
   card-db:
@@ -14,10 +15,11 @@ services:
     volumes:
       - ./volumes/postgres:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -q -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      test: [ "CMD-SHELL", "pg_isready -q -h 127.0.0.1 -p 5432 -U $${POSTGRES_USER} -d $${POSTGRES_DB}" ]
       interval: 5s
       timeout: 5s
-      retries: 10
+      retries: 30
+      start_period: 10s
     restart: unless-stopped
 
   bank_rest:
@@ -26,12 +28,30 @@ services:
     ports:
       - "8080:8080"
     environment:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://card-db:5432/${POSTGRES_DB}
-      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
-      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
-      JWT_SECRET: ${JWT_SECRET}
-      ENCRYPTOR_PASSWORD: ${ENCRYPTOR_PASSWORD}
-      ENCRYPTOR_SALT: ${ENCRYPTOR_SALT}
+      SPRING_DATASOURCE_URL: "jdbc:postgresql://card-db:5432/${POSTGRES_DB}"
+      SPRING_DATASOURCE_USERNAME: "${POSTGRES_USER}"
+      SPRING_DATASOURCE_PASSWORD: "${POSTGRES_PASSWORD}"
+
+      JWT_SECRET: "${JWT_SECRET}"
+      ENCRYPTOR_PASSWORD: "${ENCRYPTOR_PASSWORD}"
+      ENCRYPTOR_SALT: "${ENCRYPTOR_SALT}"
+
+      # Hibernate не генерит схему (только проверка после Liquibase)
+      SPRING_JPA_HIBERNATE_DDL_AUTO: "none"
+
+      # Liquibase включен и changelog задан явно
+      SPRING_LIQUIBASE_ENABLED: "true"
+      SPRING_LIQUIBASE_CHANGE_LOG: "classpath:db/migration/db.changelog-master.yaml"
+
+      # Успокаиваем логи (переопределяет application.yml при желании)
+      LOGGING_LEVEL_ROOT: "INFO"
+      LOGGING_LEVEL_ORG_SPRINGFRAMEWORK: "INFO"
+      LOGGING_LEVEL_LIQUIBASE: "INFO"
+      LOGGING_LEVEL_COM_ZAXXER_HIKARI: "INFO"
+
+      # Если нужно дебажить только свой код — раскомментируй и поправь пакет
+      # LOGGING_LEVEL_COM_EXAMPLE_BANKCARDS: "DEBUG"
+
     depends_on:
       card-db:
         condition: service_healthy

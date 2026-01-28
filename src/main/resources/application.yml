@@ -1,12 +1,6 @@
 #
 # application.yml — главный конфигурационный файл Spring Boot.
 #
-# Что нужно сделать:
-#  - Указать настройки подключения к базе данных.
-#  - Указать порт приложения.
-#  - Настроить параметры безопасности и JWT.
-#  - Включить Swagger UI.
-#
 
 server:
   port: ${SERVER_PORT:8080}
@@ -46,6 +40,12 @@ springdoc:
 
 logging:
   level:
+    root: INFO
+    org.springframework: INFO
+    liquibase: INFO
+    com.zaxxer.hikari: INFO
+
+    # точечно приглушаем шумные места
     org.springframework.security: WARN
     org.springframework.security.web.FilterChainProxy: WARN
     liquibase.precondition: WARN

@@ -2,8 +2,7 @@
 databaseChangeLog:
   - changeSet:
       id: 011-drop-uk-cards-encrypted
-      author: suprunov
+      author: you
       changes:
-        - dropUniqueConstraint:
-            tableName: cards
-            constraintName: uk_cards_encrypted_number
+        - sql:
+            sql: "ALTER TABLE cards DROP CONSTRAINT IF EXISTS uk_cards_encrypted;"
