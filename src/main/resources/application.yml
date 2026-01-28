@@ -60,6 +60,7 @@ encryptor:
 
 app:
   admin:
+    email: ${APP_ADMIN_EMAIL:admin@local}
     name: ${APP_ADMIN_NAME:admin}
     password: ${APP_ADMIN_PASSWORD:change_me}
   hashEncoder:

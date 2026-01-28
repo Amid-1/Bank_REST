@@ -35,6 +35,7 @@ services:
       JWT_SECRET: "${JWT_SECRET}"
       ENCRYPTOR_PASSWORD: "${ENCRYPTOR_PASSWORD}"
       ENCRYPTOR_SALT: "${ENCRYPTOR_SALT}"
+      APP_HASHENCODER_PEPPER: "${APP_HASHENCODER_PEPPER}"
 
       # Hibernate не генерит схему (только проверка после Liquibase)
       SPRING_JPA_HIBERNATE_DDL_AUTO: "none"
@@ -49,8 +50,10 @@ services:
       LOGGING_LEVEL_LIQUIBASE: "INFO"
       LOGGING_LEVEL_COM_ZAXXER_HIKARI: "INFO"
 
-      # Если нужно дебажить только свой код — раскомментируй и поправь пакет
-      # LOGGING_LEVEL_COM_EXAMPLE_BANKCARDS: "DEBUG"
+      APP_ADMIN_EMAIL: "${APP_ADMIN_EMAIL}"
+      APP_ADMIN_NAME: "${APP_ADMIN_NAME}"
+      APP_ADMIN_PASSWORD: "${APP_ADMIN_PASSWORD}"
+
 
     depends_on:
       card-db:
