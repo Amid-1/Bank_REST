@@ -35,7 +35,7 @@ public class BankCard {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @Column(name = "encrypted_card_number", nullable = false, unique = true)
+    @Column(name = "encrypted_card_number", nullable = false)
     private String encryptedCardNumber;
 
     @Column(name = "masked_card_number", nullable = false, length = 32)
