@@ -30,13 +30,13 @@ public class AdminCardBlockRequestsController {
     }
 
     @PatchMapping("/{id}/approve")
-    @Operation(summary = "Одобрить заявку (карта -> BLOCKED, заявка -> APPROVED)")
+    @Operation(summary = "Одобрить заявку (карта - BLOCKED, заявка - APPROVED)")
     public void approve(@PathVariable UUID id) {
         service.approve(id);
     }
 
     @PatchMapping("/{id}/reject")
-    @Operation(summary = "Отклонить заявку (заявка -> REJECTED)")
+    @Operation(summary = "Отклонить заявку (заявка - REJECTED)")
     public void reject(@PathVariable UUID id) {
         service.reject(id);
     }

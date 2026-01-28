@@ -45,6 +45,14 @@ public class AppUser implements UserDetails {
     @Column(nullable = false)
     private UserRole role;
 
+    @Builder.Default
+    @Column(name = "enabled", nullable = false)
+    private boolean enabled = true;
+
+    @Builder.Default
+    @Column(name = "account_non_locked", nullable = false)
+    private boolean accountNonLocked = true;
+
     @Override
     public String getUsername() {
         return email;
@@ -55,13 +63,26 @@ public class AppUser implements UserDetails {
         return passwordHash;
     }
 
+    public void setRole(UserRole role) { this.role = role; }
+    public void setEnabled(boolean enabled) { this.enabled = enabled; }
+    public void setPasswordHash(String passwordHash) { this.passwordHash = passwordHash; }
+
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         return List.of(new SimpleGrantedAuthority(role.name()));
     }
 
     @Override public boolean isAccountNonExpired() { return true; }
-    @Override public boolean isAccountNonLocked() { return true; }
+
+    @Override
+    public boolean isAccountNonLocked() {
+        return accountNonLocked;
+    }
+
     @Override public boolean isCredentialsNonExpired() { return true; }
-    @Override public boolean isEnabled() { return true; }
+
+    @Override
+    public boolean isEnabled() {
+        return enabled;
+    }
 }

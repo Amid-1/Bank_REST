@@ -1,6 +1,9 @@
 # db/migration/db.changelog-master.yaml
 databaseChangeLog:
   - include:
+      file: changes/000-enable-pgcrypto.yaml
+      relativeToChangelogFile: true
+  - include:
       file: changes/001-create-users.yaml
       relativeToChangelogFile: true
 
@@ -9,6 +12,13 @@ databaseChangeLog:
       relativeToChangelogFile: true
   - include:
       file: changes/003-users-email-citext.yaml
+      relativeToChangelogFile: true
+
+  - include:
+      file: changes/004-users-enabled.yaml
+      relativeToChangelogFile: true
+  - include:
+      file: changes/005-users-account-non-locked.yaml
       relativeToChangelogFile: true
 
   - include:

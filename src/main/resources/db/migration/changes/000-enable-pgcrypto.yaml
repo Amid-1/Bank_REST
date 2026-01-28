@@ -1,0 +1,9 @@
+# src/main/resources/db/migration/changes/000-enable-pgcrypto.yaml
+databaseChangeLog:
+  - changeSet:
+      id: 000-enable-pgcrypto
+      author: suprunov
+      changes:
+        - sql:
+            dbms: postgresql
+            sql: CREATE EXTENSION IF NOT EXISTS pgcrypto;

@@ -1,0 +1,15 @@
+# src/main/resources/db/migration/changes/005-users-account-non-locked.yaml
+databaseChangeLog:
+  - changeSet:
+      id: 005-users-account-non-locked
+      author: suprunov
+      changes:
+        - addColumn:
+            tableName: users
+            columns:
+              - column:
+                  name: account_non_locked
+                  type: boolean
+                  defaultValueBoolean: true
+                  constraints:
+                    nullable: false
