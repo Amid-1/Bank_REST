@@ -1,0 +1,11 @@
+# db/migration/changes/032-migrate-blockreq-statuses.yaml
+databaseChangeLog:
+  - changeSet:
+      id: 032-migrate-blockreq-statuses
+      author: suprunov
+      changes:
+        - sql:
+            sql: |
+              UPDATE card_block_request
+              SET status = 'APPROVED'
+              WHERE status = 'COMPLETED';

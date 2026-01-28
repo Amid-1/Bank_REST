@@ -31,3 +31,7 @@ databaseChangeLog:
   - include:
       file: changes/031-add-blockreq-fk-indexes.yaml
       relativeToChangelogFile: true
+
+  - include:
+      file: changes/032-migrate-blockreq-statuses.yaml
+      relativeToChangelogFile: true
