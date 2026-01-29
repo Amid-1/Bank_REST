@@ -102,9 +102,8 @@ public class CardsServiceImpl implements CardsService {
         BankCard card = cardsRepository.findById(cardId)
                 .orElseThrow(() -> new EntityNotFoundException("Card not found: " + cardId));
 
-        if (card.getExpirationDate().isBefore(LocalDate.now())) {
-            card.setStatus(BankCardStatus.EXPIRED);
-            throw new IllegalStateException("Cannot activate expired card");
+        if (card.getExpirationDate() != null && card.getExpirationDate().isBefore(LocalDate.now())) {
+            throw new IllegalStateException("Cannot activate expired card: " + cardId);
         }
 
         card.setStatus(BankCardStatus.ACTIVE);

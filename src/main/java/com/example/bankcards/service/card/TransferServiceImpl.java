@@ -90,12 +90,9 @@ public class TransferServiceImpl implements TransferService {
     }
 
     private void ensureTransferable(BankCard card) {
-        // срок истек, следовательно  карта истекла (и обновить статус)
         if (card.getExpirationDate() != null && card.getExpirationDate().isBefore(LocalDate.now())) {
-            card.setStatus(BankCardStatus.EXPIRED);
             throw new IllegalStateException("Card is expired: " + card.getId());
         }
-
         if (card.getStatus() != BankCardStatus.ACTIVE) {
             throw new IllegalStateException("Card is not ACTIVE: " + card.getId());
         }
