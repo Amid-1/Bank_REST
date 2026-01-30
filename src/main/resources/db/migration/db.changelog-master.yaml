@@ -3,13 +3,19 @@ databaseChangeLog:
   - include:
       file: changes/000-enable-pgcrypto.yaml
       relativeToChangelogFile: true
+
   - include:
       file: changes/001-create-users.yaml
       relativeToChangelogFile: true
 
   - include:
+      file: changes/003-users-email-unique-lower.yaml
+      relativeToChangelogFile: true
+
+  - include:
       file: changes/004-users-enabled.yaml
       relativeToChangelogFile: true
+
   - include:
       file: changes/005-users-account-non-locked.yaml
       relativeToChangelogFile: true
@@ -17,13 +23,19 @@ databaseChangeLog:
   - include:
       file: changes/010-create-cards.yaml
       relativeToChangelogFile: true
+
   - include:
       file: changes/011-drop-uk-cards-encrypted.yaml
       relativeToChangelogFile: true
 
   - include:
+      file: changes/012-cards-deleted.yaml
+      relativeToChangelogFile: true
+
+  - include:
       file: changes/020-create-transfers-record.yaml
       relativeToChangelogFile: true
+
   - include:
       file: changes/021-add-transfer-fk-indexes.yaml
       relativeToChangelogFile: true
@@ -31,6 +43,7 @@ databaseChangeLog:
   - include:
       file: changes/030-create-card-block-request.yaml
       relativeToChangelogFile: true
+
   - include:
       file: changes/031-add-blockreq-fk-indexes.yaml
       relativeToChangelogFile: true

@@ -1,0 +1,20 @@
+# src/main/resources/db/migration/changes/012-cards-deleted.yaml
+databaseChangeLog:
+  - changeSet:
+      id: 012-cards-deleted
+      author: suprunov
+      changes:
+        - addColumn:
+            tableName: cards
+            columns:
+              - column:
+                  name: deleted
+                  type: boolean
+                  defaultValueBoolean: false
+                  constraints:
+                    nullable: false
+        - createIndex:
+            tableName: cards
+            indexName: ix_cards_deleted
+            columns:
+              - column: { name: deleted }
