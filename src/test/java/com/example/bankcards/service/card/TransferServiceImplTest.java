@@ -58,7 +58,7 @@ class TransferServiceImplTest {
         when(cardsRepository.lockByIdAndOwnerId(eq(fromId), eq(userId))).thenReturn(Optional.of(from));
         when(cardsRepository.lockByIdAndOwnerId(eq(toId), eq(userId))).thenReturn(Optional.of(to));
 
-        when(transferRecordsRepository.saveAndFlush(any(TransferRecord.class)))
+        when(transferRecordsRepository.save(any(TransferRecord.class)))
                 .thenAnswer(inv -> {
                     TransferRecord r = inv.getArgument(0);
                     r.setId(UUID.randomUUID());
@@ -66,13 +66,14 @@ class TransferServiceImplTest {
                     return r;
                 });
 
+
         var resp = service.transfer(userId, new TransferRequest(fromId, toId, new BigDecimal("25.00")));
 
         assertThat(resp.amount()).isEqualByComparingTo("25.00");
         assertThat(resp.fromBalanceAfter()).isEqualByComparingTo("75.00");
         assertThat(resp.toBalanceAfter()).isEqualByComparingTo("35.00");
 
-        verify(transferRecordsRepository, times(1)).saveAndFlush(any(TransferRecord.class));
+        verify(transferRecordsRepository, times(1)).save(any(TransferRecord.class));
     }
 
     @Test
@@ -182,12 +183,14 @@ class TransferServiceImplTest {
 
         when(cardsRepository.lockByIdAndOwnerId(eq(a), eq(userId))).thenReturn(Optional.of(ca));
         when(cardsRepository.lockByIdAndOwnerId(eq(b), eq(userId))).thenReturn(Optional.of(cb));
-        when(transferRecordsRepository.saveAndFlush(any())).thenAnswer(inv -> {
-            TransferRecord r = inv.getArgument(0);
-            r.setId(UUID.randomUUID());
-            r.setCreatedAt(LocalDateTime.now());
-            return r;
-        });
+        when(transferRecordsRepository.save(any(TransferRecord.class)))
+                .thenAnswer(inv -> {
+                    TransferRecord r = inv.getArgument(0);
+                    r.setId(UUID.randomUUID());
+                    r.setCreatedAt(LocalDateTime.now());
+                    return r;
+                });
+
 
         service.transfer(userId, new TransferRequest(b, a, new BigDecimal("10.00")));
 

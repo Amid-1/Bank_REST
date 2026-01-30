@@ -59,4 +59,8 @@ public class BankCard {
 
     @Column(name = "pan_hash", nullable = false, length = 64, unique = true)
     private String panHash;
+
+    @Builder.Default
+    @Column(nullable = false)
+    private boolean deleted = false;
 }

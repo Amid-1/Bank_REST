@@ -7,10 +7,12 @@ import org.springframework.data.domain.Pageable;
 import java.util.UUID;
 
 public interface UsersService {
-    UserResponse create(UserCreateRequest request);
+    UserResponse create(UserCreateRequest req);
+
     Page<UserResponse> getAll(Pageable pageable);
-    UserResponse updateRole(UUID userId, UserRoleUpdateRequest request);
-    UserResponse updateEnabled(UUID userId, UserEnabledUpdateRequest request);
-    void resetPassword(UUID userId, AdminPasswordResetRequest request);
     void delete(UUID userId);
+
+    void resetPassword(UUID userId, AdminPasswordResetRequest req);
+    UserResponse updateEnabled(UUID userId, UserEnabledUpdateRequest req);
+    UserResponse updateRole(UUID userId, UserRoleUpdateRequest req);
 }

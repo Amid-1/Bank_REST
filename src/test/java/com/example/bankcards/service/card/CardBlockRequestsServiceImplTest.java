@@ -47,7 +47,7 @@ class CardBlockRequestsServiceImplTest {
                 .expirationDate(LocalDate.now().plusYears(1))
                 .build();
 
-        when(cardsRepository.findByIdAndOwner_Id(cardId, userId)).thenReturn(Optional.of(card));
+        when(cardsRepository.findByIdAndOwnerId(cardId, userId)).thenReturn(Optional.of(card));
         when(blockRequestsRepository.existsByCard_IdAndStatus(cardId, CardBlockStatus.WAITING)).thenReturn(false);
         when(usersRepository.findById(userId)).thenReturn(Optional.of(AppUser.builder().id(userId).build()));
 
@@ -70,7 +70,7 @@ class CardBlockRequestsServiceImplTest {
         UUID userId = UUID.randomUUID();
         UUID cardId = UUID.randomUUID();
 
-        when(cardsRepository.findByIdAndOwner_Id(cardId, userId))
+        when(cardsRepository.findByIdAndOwnerId(cardId, userId))
                 .thenReturn(Optional.of(BankCard.builder()
                         .id(cardId)
                         .owner(AppUser.builder().id(userId).build())
@@ -136,7 +136,7 @@ class CardBlockRequestsServiceImplTest {
         UUID userId = UUID.randomUUID();
         UUID cardId = UUID.randomUUID();
 
-        when(cardsRepository.findByIdAndOwner_Id(cardId, userId)).thenReturn(Optional.empty());
+        when(cardsRepository.findByIdAndOwnerId(cardId, userId)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> service.create(userId, new CardBlockRequestCreate(cardId, "Потеряна")))
                 .isInstanceOf(AccessDeniedException.class);

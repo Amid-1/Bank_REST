@@ -94,14 +94,16 @@ class CardServiceImplTest {
                 .expirationDate(LocalDate.now().minusDays(1))
                 .status(BankCardStatus.BLOCKED)
                 .owner(AppUser.builder().id(UUID.randomUUID()).build())
+                .deleted(false)
                 .build();
 
-        when(cardsRepository.findById(cardId)).thenReturn(Optional.of(card));
+        when(cardsRepository.findByIdAndDeletedFalse(cardId)).thenReturn(Optional.of(card));
 
         assertThatThrownBy(() -> service.activateCard(cardId))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("Нельзя активировать просроченную карту");
     }
+
 
     @Test
     void createCard_userNotFound_throwsEntityNotFound() {

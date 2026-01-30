@@ -7,6 +7,7 @@ import com.example.bankcards.entity.card.BankCardStatus;
 import com.example.bankcards.entity.user.AppUser;
 import com.example.bankcards.repository.CardsRepository;
 import com.example.bankcards.repository.UsersRepository;
+import com.example.bankcards.util.CardStatusUtil;
 import com.example.bankcards.util.PanEncryptor;
 import com.example.bankcards.util.PepperHashEncoder;
 import jakarta.persistence.EntityNotFoundException;
@@ -21,7 +22,7 @@ import java.util.UUID;
 
 @Service
 @Transactional
-public class CardsServiceImpl {
+public class CardsServiceImpl implements CardsService {
 
     private final CardsRepository cardsRepository;
     private final UsersRepository usersRepository;
@@ -40,6 +41,7 @@ public class CardsServiceImpl {
         this.panEncryptor = panEncryptor;
     }
 
+    @Override
     public CardResponse createCard(CardCreateRequest req) {
         AppUser owner = usersRepository.findById(req.ownerId())
                 .orElseThrow(() -> new EntityNotFoundException("Пользователь не найден: " + req.ownerId()));
@@ -62,17 +64,27 @@ public class CardsServiceImpl {
                 .panHash(panHash)
                 .encryptedCardNumber(encrypted)
                 .maskedCardNumber(masked)
+                .deleted(false)
                 .build();
 
-        BankCard saved = cardsRepository.save(card);
-        return toResponse(saved);
+        return toResponse(cardsRepository.save(card));
     }
 
-    public CardResponse activateCard(UUID cardId) {
-        BankCard card = cardsRepository.findById(cardId)
+    @Override
+    public CardResponse blockCard(UUID cardId) {
+        BankCard card = cardsRepository.findByIdAndDeletedFalse(cardId)
                 .orElseThrow(() -> new EntityNotFoundException("Карта не найдена: " + cardId));
 
-        if (card.getExpirationDate() != null && card.getExpirationDate().isBefore(LocalDate.now())) {
+        card.setStatus(BankCardStatus.BLOCKED);
+        return toResponse(cardsRepository.save(card));
+    }
+
+    @Override
+    public CardResponse activateCard(UUID cardId) {
+        BankCard card = cardsRepository.findByIdAndDeletedFalse(cardId)
+                .orElseThrow(() -> new EntityNotFoundException("Карта не найдена: " + cardId));
+
+        if (CardStatusUtil.isExpired(card.getExpirationDate(), LocalDate.now())) {
             throw new IllegalStateException("Нельзя активировать просроченную карту");
         }
 
@@ -80,19 +92,58 @@ public class CardsServiceImpl {
         return toResponse(cardsRepository.save(card));
     }
 
-    @Transactional(readOnly = true)
-    public Page<CardResponse> getMyCards(UUID ownerId, BankCardStatus status, String last4, Pageable pageable) {
-        String normalizedLast4 = normalizeLast4(last4);
+    // SOFT DELETE
+    @Override
+    public void deleteCard(UUID cardId) {
+        BankCard card = cardsRepository.findByIdAndDeletedFalse(cardId)
+                .orElseThrow(() -> new EntityNotFoundException("Карта не найдена: " + cardId));
 
-        Specification<BankCard> spec = (root, query, cb) ->
-                cb.equal(root.get("owner").get("id"), ownerId);
+        card.setDeleted(true);
+        card.setStatus(BankCardStatus.BLOCKED); // опционально, но логично
+        cardsRepository.save(card);
+    }
+
+    // USER
+    @Override
+    @Transactional(readOnly = true)
+    public Page<CardResponse> getMyCards(UUID userId, BankCardStatus status, String last4, Pageable pageable) {
+        return searchCards(userId, status, last4, pageable);
+    }
+
+    // ADMIN search
+    @Override
+    @Transactional(readOnly = true)
+    public Page<CardResponse> searchCards(UUID ownerId, BankCardStatus status, String last4, Pageable pageable) {
+        String normalizedLast4 = normalizeLast4OrNull(last4);
+        LocalDate today = LocalDate.now();
+
+        Specification<BankCard> spec = (root, query, cb) -> cb.conjunction();
+
+        // не показываем удаленные
+        spec = spec.and((root, query, cb) -> cb.isFalse(root.get("deleted")));
+
+        if (ownerId != null) {
+            spec = spec.and((root, query, cb) -> cb.equal(root.get("owner").get("id"), ownerId));
+        }
 
         if (status != null) {
             if (status == BankCardStatus.EXPIRED) {
                 spec = spec.and((root, query, cb) ->
-                        cb.lessThan(root.get("expirationDate"), LocalDate.now()));
+                        cb.and(
+                                cb.isNotNull(root.get("expirationDate")),
+                                cb.lessThan(root.get("expirationDate"), today)
+                        )
+                );
             } else {
-                spec = spec.and((root, query, cb) -> cb.equal(root.get("status"), status));
+                spec = spec.and((root, query, cb) ->
+                        cb.and(
+                                cb.equal(root.get("status"), status),
+                                cb.or(
+                                        cb.isNull(root.get("expirationDate")),
+                                        cb.greaterThanOrEqualTo(root.get("expirationDate"), today)
+                                )
+                        )
+                );
             }
         }
 
@@ -105,32 +156,30 @@ public class CardsServiceImpl {
     }
 
     private static String normalizePan(String pan) {
-        if (pan == null) {
-            throw new IllegalArgumentException("cardNumber не должен быть null");
-        }
+        if (pan == null) throw new IllegalArgumentException("cardNumber не должен быть null");
         String digits = pan.replaceAll("[^0-9]", "");
-        if (digits.length() < 4) {
-            throw new IllegalArgumentException("cardNumber слишком короткий");
-        }
+        if (digits.length() < 4) throw new IllegalArgumentException("cardNumber слишком короткий");
         return digits;
     }
 
-    private static String normalizeLast4(String last4) {
+    private static String normalizeLast4OrNull(String last4) {
         if (last4 == null) return null;
         String s = last4.trim();
-        if (!s.matches("\\d{4}")) {
-            throw new IllegalArgumentException("last4 должен состоять ровно из 4 цифр");
-        }
+        if (s.isEmpty()) return null;
+        if (!s.matches("\\d{4}")) throw new IllegalArgumentException("last4 должен состоять ровно из 4 цифр");
         return s;
     }
 
     private CardResponse toResponse(BankCard c) {
+        LocalDate today = LocalDate.now();
+        BankCardStatus effective = CardStatusUtil.effectiveStatus(c, today);
+
         return new CardResponse(
                 c.getId(),
                 c.getMaskedCardNumber(),
                 c.getExpirationDate(),
                 c.getBalance(),
-                c.getStatus(),
+                effective,              // <-- ВАЖНО: всегда effective
                 c.getOwner().getId()
         );
     }

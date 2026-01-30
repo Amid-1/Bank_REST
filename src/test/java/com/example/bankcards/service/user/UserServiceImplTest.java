@@ -33,16 +33,16 @@ class UserServiceImplTest {
     @InjectMocks UsersServiceImpl service;
 
     @Test
-    void create_defaultRoleIsUser_andPasswordEncoded() {
-        when(usersRepository.existsByEmail("u@mail.ru")).thenReturn(false);
+    void create_defaultRoleIsUser_andPasswordEncoded_andEmailNormalized() {
+        String rawEmail = "  U@MAIL.RU  ";
+        String normalizedEmail = "u@mail.ru";
+
+        when(usersRepository.existsByEmailLower(normalizedEmail)).thenReturn(false);
         when(passwordEncoder.encode("very_strong_password")).thenReturn("ENC");
 
-        when(usersRepository.save(any(AppUser.class))).thenAnswer(inv -> {
-            AppUser u = inv.getArgument(0);
-            return u;
-        });
+        when(usersRepository.save(any(AppUser.class))).thenAnswer(inv -> inv.getArgument(0));
 
-        var resp = service.create(new UserCreateRequest("U", "u@mail.ru", "very_strong_password"));
+        var resp = service.create(new UserCreateRequest("U", rawEmail, "very_strong_password"));
 
         ArgumentCaptor<AppUser> captor = ArgumentCaptor.forClass(AppUser.class);
         verify(usersRepository).save(captor.capture());
@@ -50,14 +50,18 @@ class UserServiceImplTest {
 
         assertThat(saved.getRole()).isEqualTo(UserRole.ROLE_USER);
         assertThat(saved.getPasswordHash()).isEqualTo("ENC");
-        assertThat(resp.email()).isEqualTo("u@mail.ru");
+        assertThat(saved.getEmail()).isEqualTo(normalizedEmail);
+
+        assertThat(resp.email()).isEqualTo(normalizedEmail);
     }
 
     @Test
     void create_duplicateEmail_throwsIllegalState() {
-        when(usersRepository.existsByEmail("u@mail.ru")).thenReturn(true);
+        String normalizedEmail = "u@mail.ru";
 
-        assertThatThrownBy(() -> service.create(new UserCreateRequest("U", "u@mail.ru", "very_strong_password")))
+        when(usersRepository.existsByEmailLower(normalizedEmail)).thenReturn(true);
+
+        assertThatThrownBy(() -> service.create(new UserCreateRequest("U", "U@MAIL.RU", "very_strong_password")))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("уже существует");
     }
@@ -67,6 +71,7 @@ class UserServiceImplTest {
         UUID id = UUID.randomUUID();
         AppUser user = AppUser.builder()
                 .id(id).name("U").email("u@mail.ru").passwordHash("OLD").role(UserRole.ROLE_USER)
+                .enabled(true)
                 .build();
 
         when(usersRepository.findById(id)).thenReturn(Optional.of(user));
@@ -82,6 +87,7 @@ class UserServiceImplTest {
         UUID id = UUID.randomUUID();
         AppUser user = AppUser.builder()
                 .id(id).name("U").email("u@mail.ru").passwordHash("x").role(UserRole.ROLE_USER)
+                .enabled(true)
                 .build();
 
         when(usersRepository.findById(id)).thenReturn(Optional.of(user));
@@ -97,13 +103,14 @@ class UserServiceImplTest {
         UUID id = UUID.randomUUID();
         AppUser user = AppUser.builder()
                 .id(id).name("U").email("u@mail.ru").passwordHash("x").role(UserRole.ROLE_USER)
+                .enabled(true)
                 .build();
 
         when(usersRepository.findById(id)).thenReturn(Optional.of(user));
 
         var resp = service.updateRole(id, new UserRoleUpdateRequest(UserRole.ROLE_ADMIN));
 
-        assertThat(user.getAuthorities()).anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+        assertThat(user.getRole()).isEqualTo(UserRole.ROLE_ADMIN);
         assertThat(resp.id()).isEqualTo(id);
     }
 

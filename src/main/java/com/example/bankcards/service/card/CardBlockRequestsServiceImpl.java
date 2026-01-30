@@ -34,7 +34,7 @@ public class CardBlockRequestsServiceImpl implements CardBlockRequestsService {
     @Transactional
     public CardBlockRequestResponse create(UUID userId, CardBlockRequestCreate dto) {
 
-        BankCard card = cardsRepository.findByIdAndOwner_Id(dto.cardId(), userId)
+        BankCard card = cardsRepository.findByIdAndOwnerId(dto.cardId(), userId)
                 .orElseThrow(() -> new AccessDeniedException("Карта не найдена или не принадлежит пользователю"));
 
         if (card.getStatus() != BankCardStatus.ACTIVE) {

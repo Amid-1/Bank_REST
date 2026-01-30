@@ -11,21 +11,23 @@ import org.springframework.data.repository.query.Param;
 import java.util.Optional;
 import java.util.UUID;
 
-/**
- * Репозиторий банковских карт.
- * Поддерживает:
- *  - поиск с фильтрами и пагинацией (через Specification)
- *  - блокировку строк (PESSIMISTIC_WRITE) для переводов
- */
 public interface CardsRepository extends JpaRepository<BankCard, UUID>, JpaSpecificationExecutor<BankCard> {
 
     boolean existsByPanHash(String panHash);
 
-    // обычная проверка владения (без блокировки)
-    Optional<BankCard> findByIdAndOwner_Id(UUID id, UUID ownerId);
+    Optional<BankCard> findByIdAndOwnerId(UUID id, UUID ownerId);
 
-    // для перевода (с блокировкой)
+    Optional<BankCard> findByIdAndDeletedFalse(UUID id);
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
-    @Query("select c from BankCard c where c.id = :id and c.owner.id = :ownerId")
-    Optional<BankCard> lockByIdAndOwnerId(@Param("id") UUID id, @Param("ownerId") UUID ownerId);
+    @Query("""
+           select c from BankCard c
+           where c.id = :id
+             and c.owner.id = :ownerId
+             and c.deleted = false
+           """)
+    Optional<BankCard> lockByIdAndOwnerId(@Param("id") UUID id,
+                                          @Param("ownerId") UUID ownerId);
+
+
 }

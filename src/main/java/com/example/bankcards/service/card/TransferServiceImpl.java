@@ -8,6 +8,7 @@ import com.example.bankcards.entity.card.TransferRecord;
 import com.example.bankcards.repository.CardsRepository;
 import com.example.bankcards.repository.TransferRecordsRepository;
 import jakarta.persistence.EntityNotFoundException;
+import org.jspecify.annotations.NonNull;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -17,7 +18,7 @@ import java.util.UUID;
 
 @Service
 @Transactional
-public class TransferServiceImpl {
+public class TransferServiceImpl implements TransferService {
 
     private final CardsRepository cardsRepository;
     private final TransferRecordsRepository transferRecordsRepository;
@@ -28,23 +29,16 @@ public class TransferServiceImpl {
         this.transferRecordsRepository = transferRecordsRepository;
     }
 
+    @Override
     public TransferResponse transfer(UUID userId, TransferRequest req) {
+        if (userId == null) throw new IllegalArgumentException("userId is null");
+        if (req == null) throw new IllegalArgumentException("request is null");
+
         UUID fromId = req.fromCardId();
         UUID toId = req.toCardId();
-        BigDecimal amount = req.amount();
+        BigDecimal amount = getBigDecimal(req, fromId, toId);
 
-        if (fromId.equals(toId)) {
-            throw new IllegalArgumentException("fromCardId и toCardId должны быть разными");
-        }
-        if (amount == null || amount.signum() <= 0) {
-            throw new IllegalArgumentException("amount должен быть > 0");
-        }
-        if (amount.scale() > 2) {
-            throw new IllegalArgumentException("amount: не более 2 знаков после запятой");
-        }
-
-        // фиксируем порядок блокировок, чтобы не ловить дедлок
-        UUID first = (fromId.compareTo(toId) <= 0) ? fromId : toId;
+        UUID first = (fromId.compareTo(toId) < 0) ? fromId : toId;
         UUID second = first.equals(fromId) ? toId : fromId;
 
         BankCard c1 = cardsRepository.lockByIdAndOwnerId(first, userId)
@@ -74,9 +68,26 @@ public class TransferServiceImpl {
                 .amount(amount)
                 .build();
 
-        TransferRecord saved = transferRecordsRepository.saveAndFlush(record);
+        TransferRecord saved = transferRecordsRepository.save(record);
 
         return toResponse(saved, from.getBalance(), to.getBalance());
+    }
+
+    private static @NonNull BigDecimal getBigDecimal(TransferRequest req, UUID fromId, UUID toId) {
+        BigDecimal amount = req.amount();
+
+        if (fromId == null || toId == null) throw new IllegalArgumentException("cardId is null");
+
+        if (fromId.equals(toId)) {
+            throw new IllegalArgumentException("fromCardId и toCardId должны быть разными");
+        }
+        if (amount == null || amount.signum() <= 0) {
+            throw new IllegalArgumentException("amount должен быть > 0");
+        }
+        if (amount.scale() > 2) {
+            throw new IllegalArgumentException("amount: не более 2 знаков после запятой");
+        }
+        return amount;
     }
 
     private void ensureTransferable(BankCard card) {
