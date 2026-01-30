@@ -1,6 +1,7 @@
 package com.example.bankcards.dto.card;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.FutureOrPresent;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import org.hibernate.validator.constraints.CreditCardNumber;
@@ -17,6 +18,7 @@ public record CardCreateRequest(
 
         @Schema(description = "Дата окончания действия карты", example = "2035-08-11")
         @NotNull
+        @FutureOrPresent
         LocalDate expirationDate,
 
         @Schema(description = "ID владельца карты", example = "5545749c-5bb2-40a5-a049-52ecf74b2571")

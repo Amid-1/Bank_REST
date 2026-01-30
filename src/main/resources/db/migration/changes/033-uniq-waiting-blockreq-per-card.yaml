@@ -1,0 +1,13 @@
+# changes/033-uniq-waiting-blockreq-per-card.yaml
+databaseChangeLog:
+  - changeSet:
+      id: 033-uniq-waiting-blockreq-per-card
+      author: suprunov
+      dbms: postgresql
+      changes:
+        - sql:
+            splitStatements: false
+            sql: |
+              CREATE UNIQUE INDEX IF NOT EXISTS uk_blockreq_waiting_card
+              ON card_block_request(card_id)
+              WHERE status = 'WAITING';

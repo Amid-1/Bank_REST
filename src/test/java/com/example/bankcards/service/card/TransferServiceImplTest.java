@@ -105,7 +105,7 @@ class TransferServiceImplTest {
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("Недостаточно средств");
 
-        verify(transferRecordsRepository, never()).saveAndFlush(any());
+        verify(transferRecordsRepository, never()).save(any());
     }
 
     @Test

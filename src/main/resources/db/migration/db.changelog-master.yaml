@@ -51,3 +51,7 @@ databaseChangeLog:
   - include:
       file: changes/032-migrate-blockreq-statuses.yaml
       relativeToChangelogFile: true
+
+  - include:
+      file: changes/033-uniq-waiting-blockreq-per-card.yaml
+      relativeToChangelogFile: true
