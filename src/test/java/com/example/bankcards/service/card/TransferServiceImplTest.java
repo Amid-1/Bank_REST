@@ -55,7 +55,6 @@ class TransferServiceImplTest {
                 .balance(new BigDecimal("10.00"))
                 .build();
 
-        // порядок блокировок внутри сервиса определяется сравнением UUID (compareTo)
         when(cardsRepository.lockByIdAndOwnerId(eq(fromId), eq(userId))).thenReturn(Optional.of(from));
         when(cardsRepository.lockByIdAndOwnerId(eq(toId), eq(userId))).thenReturn(Optional.of(to));
 

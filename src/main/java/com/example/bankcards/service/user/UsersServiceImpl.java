@@ -28,6 +28,10 @@ public class UsersServiceImpl {
     }
 
     public UserResponse create(UserCreateRequest req) {
+        if (req == null) {
+            throw new IllegalArgumentException("Запрос на создание пользователя не должен быть null");
+        }
+
         if (usersRepository.existsByEmail(req.email())) {
             throw new IllegalStateException("Пользователь с email уже существует: " + req.email());
         }
@@ -40,8 +44,8 @@ public class UsersServiceImpl {
                 .enabled(true)
                 .build();
 
-        AppUser saved = usersRepository.save(user);
-        return toResponse(saved);
+        usersRepository.save(user);
+        return toResponse(user);
     }
 
     public void resetPassword(UUID userId, AdminPasswordResetRequest req) {
@@ -57,8 +61,8 @@ public class UsersServiceImpl {
                 .orElseThrow(() -> new EntityNotFoundException("Пользователь не найден: " + userId));
 
         user.setEnabled(req.enabled());
-        AppUser saved = usersRepository.save(user);
-        return toResponse(saved);
+        usersRepository.save(user);
+        return toResponse(user);
     }
 
     public UserResponse updateRole(UUID userId, UserRoleUpdateRequest req) {
@@ -66,8 +70,8 @@ public class UsersServiceImpl {
                 .orElseThrow(() -> new EntityNotFoundException("Пользователь не найден: " + userId));
 
         user.setRole(req.role());
-        AppUser saved = usersRepository.save(user);
-        return toResponse(saved);
+        usersRepository.save(user);
+        return toResponse(user);
     }
 
     private UserResponse toResponse(AppUser u) {

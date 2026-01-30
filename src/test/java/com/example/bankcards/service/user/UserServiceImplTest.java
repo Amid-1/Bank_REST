@@ -74,7 +74,7 @@ class UserServiceImplTest {
 
         service.resetPassword(id, new AdminPasswordResetRequest("new_strong_password_123"));
 
-        assertThat(user.getPassword()).isEqualTo("NEW_HASH");
+        assertThat(user.getPasswordHash()).isEqualTo("NEW_HASH");
     }
 
     @Test
