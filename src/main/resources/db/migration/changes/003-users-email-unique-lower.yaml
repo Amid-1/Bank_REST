@@ -1,0 +1,12 @@
+# db/migration/changes/003-users-email-unique-lower.yaml
+databaseChangeLog:
+  - changeSet:
+      id: 003-users-email-unique-lower
+      author: suprunov
+      dbms: postgresql
+      changes:
+        - sql:
+            splitStatements: false
+            sql: |
+              CREATE UNIQUE INDEX IF NOT EXISTS uk_users_email_lower
+              ON users (lower(email));

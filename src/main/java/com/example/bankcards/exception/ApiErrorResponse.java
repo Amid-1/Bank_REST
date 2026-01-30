@@ -12,13 +12,13 @@ public record ApiErrorResponse(
         @Schema(description = "Время ошибки (UTC offset)")
         OffsetDateTime timestamp,
 
-        @Schema(description = "HTTP status code", example = "400")
+        @Schema(description = "HTTP статус-код", example = "400")
         int status,
 
         @Schema(description = "Короткое имя статуса", example = "BAD_REQUEST")
         String error,
 
-        @Schema(description = "Сообщение об ошибке", example = "Validation failed")
+        @Schema(description = "Сообщение об ошибке", example = "Ошибка валидации")
         String message,
 
         @Schema(description = "Путь запроса", example = "/api/transfers")
@@ -29,6 +29,6 @@ public record ApiErrorResponse(
 ) {
     public record FieldErrorItem(
             @Schema(example = "email") String field,
-            @Schema(example = "must be a well-formed email address") String message
+            @Schema(example = "Некорректный email") String message
     ) {}
 }

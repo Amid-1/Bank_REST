@@ -8,13 +8,6 @@ databaseChangeLog:
       relativeToChangelogFile: true
 
   - include:
-      file: changes/002-enable-citext.yaml
-      relativeToChangelogFile: true
-  - include:
-      file: changes/003-users-email-citext.yaml
-      relativeToChangelogFile: true
-
-  - include:
       file: changes/004-users-enabled.yaml
       relativeToChangelogFile: true
   - include:

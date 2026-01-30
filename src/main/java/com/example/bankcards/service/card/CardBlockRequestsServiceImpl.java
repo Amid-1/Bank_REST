@@ -35,25 +35,22 @@ public class CardBlockRequestsServiceImpl implements CardBlockRequestsService {
     public CardBlockRequestResponse create(UUID userId, CardBlockRequestCreate dto) {
 
         BankCard card = cardsRepository.findByIdAndOwner_Id(dto.cardId(), userId)
-                .orElseThrow(() -> new AccessDeniedException("Card not found or not owned by user"));
+                .orElseThrow(() -> new AccessDeniedException("Карта не найдена или не принадлежит пользователю"));
 
-        // карта должна быть активна
         if (card.getStatus() != BankCardStatus.ACTIVE) {
-            throw new IllegalStateException("Card is not ACTIVE");
+            throw new IllegalStateException("Карта не находится в статусе ACTIVE");
         }
 
-        // карта не должна быть просрочена
         if (card.getExpirationDate().isBefore(LocalDate.now())) {
-            throw new IllegalStateException("Card is expired");
+            throw new IllegalStateException("Срок действия карты истек");
         }
 
-        // нельзя создать 2 WAITING-заявки на одну карту
         if (blockRequestsRepository.existsByCard_IdAndStatus(card.getId(), CardBlockStatus.WAITING)) {
-            throw new IllegalStateException("Waiting request for this card already exists");
+            throw new IllegalStateException("Заявка на блокировку по данной карте уже существует");
         }
 
         AppUser initiator = usersRepository.findById(userId)
-                .orElseThrow(() -> new EntityNotFoundException("User not found: " + userId));
+                .orElseThrow(() -> new EntityNotFoundException("Пользователь не найден: " + userId));
 
         CardBlockRequest req = CardBlockRequest.builder()
                 .card(card)
@@ -77,16 +74,15 @@ public class CardBlockRequestsServiceImpl implements CardBlockRequestsService {
     @Transactional
     public void approve(UUID requestId) {
         CardBlockRequest req = blockRequestsRepository.findById(requestId)
-                .orElseThrow(() -> new EntityNotFoundException("Request not found: " + requestId));
+                .orElseThrow(() -> new EntityNotFoundException("Заявка не найдена: " + requestId));
 
         if (req.getStatus() != CardBlockStatus.WAITING) {
-            throw new IllegalStateException("Request is not WAITING");
+            throw new IllegalStateException("Заявка не находится в статусе WAITING");
         }
 
         BankCard card = cardsRepository.findById(req.getCard().getId())
-                .orElseThrow(() -> new EntityNotFoundException("Card not found: " + req.getCard().getId()));
+                .orElseThrow(() -> new EntityNotFoundException("Карта не найдена: " + req.getCard().getId()));
 
-        // Блокировка карты и статус заявки APPROVED
         card.setStatus(BankCardStatus.BLOCKED);
         req.setStatus(CardBlockStatus.APPROVED);
     }
@@ -95,10 +91,10 @@ public class CardBlockRequestsServiceImpl implements CardBlockRequestsService {
     @Transactional
     public void reject(UUID requestId) {
         CardBlockRequest req = blockRequestsRepository.findById(requestId)
-                .orElseThrow(() -> new EntityNotFoundException("Request not found: " + requestId));
+                .orElseThrow(() -> new EntityNotFoundException("Заявка не найдена: " + requestId));
 
         if (req.getStatus() != CardBlockStatus.WAITING) {
-            throw new IllegalStateException("Request is not WAITING");
+            throw new IllegalStateException("Заявка не находится в статусе WAITING");
         }
 
         req.setStatus(CardBlockStatus.REJECTED);

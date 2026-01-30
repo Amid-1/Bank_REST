@@ -7,8 +7,7 @@ import com.example.bankcards.entity.card.BankCardStatus;
 import com.example.bankcards.entity.card.TransferRecord;
 import com.example.bankcards.repository.CardsRepository;
 import com.example.bankcards.repository.TransferRecordsRepository;
-import lombok.RequiredArgsConstructor;
-import org.springframework.security.access.AccessDeniedException;
+import jakarta.persistence.EntityNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -17,54 +16,58 @@ import java.time.LocalDate;
 import java.util.UUID;
 
 @Service
-@RequiredArgsConstructor
-public class TransferServiceImpl implements TransferService {
+@Transactional
+public class TransferServiceImpl {
 
     private final CardsRepository cardsRepository;
     private final TransferRecordsRepository transferRecordsRepository;
 
-    @Override
-    @Transactional
-    public TransferResponse transfer(UUID userId, TransferRequest request) {
-        UUID fromId = request.fromCardId();
-        UUID toId = request.toCardId();
-        BigDecimal amount = request.amount();
+    public TransferServiceImpl(CardsRepository cardsRepository,
+                               TransferRecordsRepository transferRecordsRepository) {
+        this.cardsRepository = cardsRepository;
+        this.transferRecordsRepository = transferRecordsRepository;
+    }
+
+    public TransferResponse transfer(UUID userId, TransferRequest req) {
+        UUID fromId = req.fromCardId();
+        UUID toId = req.toCardId();
+        BigDecimal amount = req.amount();
 
         if (fromId.equals(toId)) {
-            throw new IllegalArgumentException("fromCardId must be different from toCardId");
+            throw new IllegalArgumentException("fromCardId и toCardId должны быть разными");
         }
         if (amount == null || amount.signum() <= 0) {
-            throw new IllegalArgumentException("amount must be positive");
+            throw new IllegalArgumentException("amount должен быть > 0");
         }
         if (amount.scale() > 2) {
-            throw new IllegalArgumentException("amount scale must be <= 2");
+            throw new IllegalArgumentException("amount: не более 2 знаков после запятой");
         }
 
-        // 1) Лочим карты в стабильном порядке, чтобы избежать deadlock
-        UUID firstId = (fromId.compareTo(toId) < 0) ? fromId : toId;
-        UUID secondId = (firstId.equals(fromId)) ? toId : fromId;
+        // фиксируем порядок блокировок, чтобы не ловить дедлок
+        UUID first = (fromId.compareTo(toId) <= 0) ? fromId : toId;
+        UUID second = first.equals(fromId) ? toId : fromId;
 
-        BankCard first = lockOwnedCard(userId, firstId);
-        BankCard second = lockOwnedCard(userId, secondId);
+        BankCard c1 = cardsRepository.lockByIdAndOwnerId(first, userId)
+                .orElseThrow(() -> new EntityNotFoundException("Карта не найдена: " + first));
+        BankCard c2 = cardsRepository.lockByIdAndOwnerId(second, userId)
+                .orElseThrow(() -> new EntityNotFoundException("Карта не найдена: " + second));
 
-        // 2) from/to после лока
-        BankCard from = first.getId().equals(fromId) ? first : second;
-        BankCard to = first.getId().equals(toId) ? first : second;
+        BankCard from = c1.getId().equals(fromId) ? c1 : c2;
+        BankCard to = (from == c1) ? c2 : c1;
 
-        // 3) Валидации статусов/срока
         ensureTransferable(from);
         ensureTransferable(to);
 
-        BigDecimal fromBalance = safeBalance(from);
-        if (fromBalance.compareTo(amount) < 0) {
-            throw new IllegalStateException("Insufficient funds");
+        if (from.getBalance() == null) from.setBalance(BigDecimal.ZERO);
+        if (to.getBalance() == null) to.setBalance(BigDecimal.ZERO);
+
+        if (from.getBalance().compareTo(amount) < 0) {
+            throw new IllegalStateException("Недостаточно средств");
         }
 
-        // 4) Балансы (dirty checking) обновление
-        from.setBalance(fromBalance.subtract(amount));
-        to.setBalance(safeBalance(to).add(amount));
+        from.setBalance(from.getBalance().subtract(amount));
+        to.setBalance(to.getBalance().add(amount));
 
-        // 5) Запись о переводе
         TransferRecord record = TransferRecord.builder()
                 .fromCard(from)
                 .toCard(to)
@@ -73,32 +76,30 @@ public class TransferServiceImpl implements TransferService {
 
         TransferRecord saved = transferRecordsRepository.saveAndFlush(record);
 
-        return new TransferResponse(
-                saved.getId(),
-                from.getId(),
-                to.getId(),
-                amount,
-                saved.getCreatedAt(),
-                from.getBalance(),
-                to.getBalance()
-        );
-    }
-
-    private BankCard lockOwnedCard(UUID userId, UUID cardId) {
-        return cardsRepository.lockByIdAndOwnerId(cardId, userId)
-                .orElseThrow(() -> new AccessDeniedException("Card not found or not owned by user: " + cardId));
+        return toResponse(saved, from.getBalance(), to.getBalance());
     }
 
     private void ensureTransferable(BankCard card) {
-        if (card.getExpirationDate() != null && card.getExpirationDate().isBefore(LocalDate.now())) {
-            throw new IllegalStateException("Card is expired: " + card.getId());
-        }
         if (card.getStatus() != BankCardStatus.ACTIVE) {
-            throw new IllegalStateException("Card is not ACTIVE: " + card.getId());
+            throw new IllegalStateException("Карта не в статусе ACTIVE: " + card.getId());
+        }
+        LocalDate exp = card.getExpirationDate();
+        if (exp != null && exp.isBefore(LocalDate.now())) {
+            throw new IllegalStateException("Карта просрочена: " + card.getId());
         }
     }
 
-    private static BigDecimal safeBalance(BankCard card) {
-        return card.getBalance() == null ? BigDecimal.ZERO : card.getBalance();
+    private TransferResponse toResponse(TransferRecord record,
+                                        BigDecimal fromBalanceAfter,
+                                        BigDecimal toBalanceAfter) {
+        return new TransferResponse(
+                record.getId(),
+                record.getFromCard().getId(),
+                record.getToCard().getId(),
+                record.getAmount(),
+                record.getCreatedAt(),
+                fromBalanceAfter,
+                toBalanceAfter
+        );
     }
 }

@@ -1,4 +1,4 @@
-package com.example.bankcards.it;
+package com.example.bankcards.integration;
 
 import com.example.bankcards.dto.card.TransferRequest;
 import com.example.bankcards.entity.card.BankCard;
@@ -8,6 +8,7 @@ import com.example.bankcards.entity.user.UserRole;
 import com.example.bankcards.repository.CardsRepository;
 import com.example.bankcards.repository.TransferRecordsRepository;
 import com.example.bankcards.repository.UsersRepository;
+import com.example.bankcards.service.card.CardsService;
 import com.example.bankcards.service.card.TransferService;
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,6 +16,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -31,6 +33,9 @@ import static org.junit.jupiter.api.Assertions.*;
 @ActiveProfiles("test")
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE)
 class TransferServiceImplIT {
+
+    @MockitoBean
+    CardsService cardsService;
 
     @Container
     static final PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:17-alpine")

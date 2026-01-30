@@ -7,14 +7,9 @@ import com.example.bankcards.entity.card.BankCardStatus;
 import com.example.bankcards.entity.user.AppUser;
 import com.example.bankcards.repository.CardsRepository;
 import com.example.bankcards.repository.UsersRepository;
-import com.example.bankcards.service.card.mapper.CardMapper;
-import com.example.bankcards.service.card.spec.CardsSpecifications;
-import com.example.bankcards.util.CardMasker;
 import com.example.bankcards.util.PanEncryptor;
-import com.example.bankcards.util.PanNormalizer;
 import com.example.bankcards.util.PepperHashEncoder;
 import jakarta.persistence.EntityNotFoundException;
-import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -25,127 +20,118 @@ import java.time.LocalDate;
 import java.util.UUID;
 
 @Service
-@RequiredArgsConstructor
-public class CardsServiceImpl implements CardsService {
+@Transactional
+public class CardsServiceImpl {
 
     private final CardsRepository cardsRepository;
     private final UsersRepository usersRepository;
     private final PepperHashEncoder hashEncoder;
     private final PanEncryptor panEncryptor;
 
-    // USER
-    @Override
-    @Transactional(readOnly = true)
-    public Page<CardResponse> getMyCards(UUID userId, BankCardStatus status, String last4, Pageable pageable) {
-        Specification<BankCard> spec = CardsSpecifications.ownerId(userId);
-
-        if (status != null) {
-            spec = spec.and(CardsSpecifications.status(status));
-        }
-
-        String l4 = normalizeLast4(last4);
-        if (l4 != null) {
-            spec = spec.and(CardsSpecifications.last4(l4));
-        }
-
-        return cardsRepository.findAll(spec, pageable).map(CardMapper::toResponse);
+    public CardsServiceImpl(
+            CardsRepository cardsRepository,
+            UsersRepository usersRepository,
+            PepperHashEncoder hashEncoder,
+            PanEncryptor panEncryptor
+    ) {
+        this.cardsRepository = cardsRepository;
+        this.usersRepository = usersRepository;
+        this.hashEncoder = hashEncoder;
+        this.panEncryptor = panEncryptor;
     }
 
-    // ADMIN
-    @Override
-    @Transactional
-    public CardResponse createCard(CardCreateRequest request) {
-        AppUser owner = usersRepository.findById(request.ownerId())
-                .orElseThrow(() -> new EntityNotFoundException("User not found: " + request.ownerId()));
+    public CardResponse createCard(CardCreateRequest req) {
+        AppUser owner = usersRepository.findById(req.ownerId())
+                .orElseThrow(() -> new EntityNotFoundException("Пользователь не найден: " + req.ownerId()));
 
-        String pan = PanNormalizer.normalize(request.cardNumber());
+        String pan = normalizePan(req.cardNumber());
+        String last4 = pan.substring(pan.length() - 4);
+        String masked = "**** **** **** " + last4;
 
-        // pan_hash = sha256(pan + pepper) — для дублей
         String panHash = hashEncoder.sha256Hex(pan);
         if (cardsRepository.existsByPanHash(panHash)) {
-            throw new IllegalStateException("Card already exists (panHash duplicate)");
+            throw new IllegalStateException("дубликат panHash: " + panHash);
         }
 
-        String masked = CardMasker.mask(pan);
         String encrypted = panEncryptor.encrypt(pan);
-
-        BankCardStatus status = request.expirationDate().isBefore(LocalDate.now())
-                ? BankCardStatus.EXPIRED
-                : BankCardStatus.ACTIVE;
 
         BankCard card = BankCard.builder()
                 .owner(owner)
+                .expirationDate(req.expirationDate())
+                .status(BankCardStatus.ACTIVE)
                 .panHash(panHash)
-                .maskedCardNumber(masked)
                 .encryptedCardNumber(encrypted)
-                .expirationDate(request.expirationDate())
-                .status(status)
+                .maskedCardNumber(masked)
                 .build();
 
         BankCard saved = cardsRepository.save(card);
-        return CardMapper.toResponse(saved);
+        return toResponse(saved);
     }
 
-    @Override
-    @Transactional
-    public CardResponse blockCard(UUID cardId) {
-        BankCard card = cardsRepository.findById(cardId)
-                .orElseThrow(() -> new EntityNotFoundException("Card not found: " + cardId));
-
-        card.setStatus(BankCardStatus.BLOCKED);
-        return CardMapper.toResponse(card);
-    }
-
-    @Override
-    @Transactional
     public CardResponse activateCard(UUID cardId) {
         BankCard card = cardsRepository.findById(cardId)
-                .orElseThrow(() -> new EntityNotFoundException("Card not found: " + cardId));
+                .orElseThrow(() -> new EntityNotFoundException("Карта не найдена: " + cardId));
 
         if (card.getExpirationDate() != null && card.getExpirationDate().isBefore(LocalDate.now())) {
-            throw new IllegalStateException("Cannot activate expired card: " + cardId);
+            throw new IllegalStateException("Нельзя активировать просроченную карту");
         }
 
         card.setStatus(BankCardStatus.ACTIVE);
-        return CardMapper.toResponse(card);
+        return toResponse(cardsRepository.save(card));
     }
 
-    @Override
-    @Transactional
-    public void deleteCard(UUID cardId) {
-        if (!cardsRepository.existsById(cardId)) {
-            throw new EntityNotFoundException("Card not found: " + cardId);
-        }
-        cardsRepository.deleteById(cardId);
-    }
-
-    @Override
     @Transactional(readOnly = true)
-    public Page<CardResponse> searchCards(UUID ownerId, BankCardStatus status, String last4, Pageable pageable) {
-        Specification<BankCard> spec = (root, query, cb) -> cb.conjunction();
+    public Page<CardResponse> getMyCards(UUID ownerId, BankCardStatus status, String last4, Pageable pageable) {
+        String normalizedLast4 = normalizeLast4(last4);
 
-        if (ownerId != null) {
-            spec = spec.and(CardsSpecifications.ownerId(ownerId));
-        }
+        Specification<BankCard> spec = (root, query, cb) ->
+                cb.equal(root.get("owner").get("id"), ownerId);
+
         if (status != null) {
-            spec = spec.and(CardsSpecifications.status(status));
+            if (status == BankCardStatus.EXPIRED) {
+                spec = spec.and((root, query, cb) ->
+                        cb.lessThan(root.get("expirationDate"), LocalDate.now()));
+            } else {
+                spec = spec.and((root, query, cb) -> cb.equal(root.get("status"), status));
+            }
         }
 
-        String l4 = normalizeLast4(last4);
-        if (l4 != null) {
-            spec = spec.and(CardsSpecifications.last4(l4));
+        if (normalizedLast4 != null) {
+            spec = spec.and((root, query, cb) ->
+                    cb.like(root.get("maskedCardNumber"), "%" + normalizedLast4));
         }
 
-        return cardsRepository.findAll(spec, pageable).map(CardMapper::toResponse);
+        return cardsRepository.findAll(spec, pageable).map(this::toResponse);
+    }
+
+    private static String normalizePan(String pan) {
+        if (pan == null) {
+            throw new IllegalArgumentException("cardNumber не должен быть null");
+        }
+        String digits = pan.replaceAll("[^0-9]", "");
+        if (digits.length() < 4) {
+            throw new IllegalArgumentException("cardNumber слишком короткий");
+        }
+        return digits;
     }
 
     private static String normalizeLast4(String last4) {
-        if (last4 == null || last4.isBlank()) return null;
-
-        String l4 = last4.trim();
-        if (!l4.matches("\\d{4}")) {
-            throw new IllegalArgumentException("last4 must be exactly 4 digits");
+        if (last4 == null) return null;
+        String s = last4.trim();
+        if (!s.matches("\\d{4}")) {
+            throw new IllegalArgumentException("last4 должен состоять ровно из 4 цифр");
         }
-        return l4;
+        return s;
+    }
+
+    private CardResponse toResponse(BankCard c) {
+        return new CardResponse(
+                c.getId(),
+                c.getMaskedCardNumber(),
+                c.getExpirationDate(),
+                c.getBalance(),
+                c.getStatus(),
+                c.getOwner().getId()
+        );
     }
 }

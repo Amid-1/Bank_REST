@@ -19,7 +19,9 @@ import java.util.List;
 @RestControllerAdvice
 public class ApiExceptionHandler {
 
-    // 400 — DTO body validation (@Valid)
+    private static final String MSG_VALIDATION = "Ошибка валидации";
+    private static final String MSG_BAD_CREDENTIALS = "Неверный логин или пароль";
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ApiErrorResponse> handleMethodArgumentNotValid(
             MethodArgumentNotValidException e,
@@ -31,10 +33,9 @@ public class ApiExceptionHandler {
                 .map(fe -> new ApiErrorResponse.FieldErrorItem(fe.getField(), fe.getDefaultMessage()))
                 .toList();
 
-        return build(HttpStatus.BAD_REQUEST, "Validation failed", request, fields, e, false);
+        return build(HttpStatus.BAD_REQUEST, MSG_VALIDATION, request, fields, e, false);
     }
 
-    // 400 — validation on params/path vars
     @ExceptionHandler(ConstraintViolationException.class)
     public ResponseEntity<ApiErrorResponse> handleConstraintViolation(
             ConstraintViolationException e,
@@ -48,10 +49,9 @@ public class ApiExceptionHandler {
                 ))
                 .toList();
 
-        return build(HttpStatus.BAD_REQUEST, "Constraint violation", request, fields, e, false);
+        return build(HttpStatus.BAD_REQUEST, MSG_VALIDATION, request, fields, e, false);
     }
 
-    // 404 — “не найдено”
     @ExceptionHandler(EntityNotFoundException.class)
     public ResponseEntity<ApiErrorResponse> handleEntityNotFound(
             EntityNotFoundException e,
@@ -60,49 +60,56 @@ public class ApiExceptionHandler {
         return build(HttpStatus.NOT_FOUND, e.getMessage(), request, null, e, false);
     }
 
-    // 403 — нет прав
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<ApiErrorResponse> handleAccessDenied(
             AccessDeniedException e,
             HttpServletRequest request
     ) {
-        return build(HttpStatus.FORBIDDEN, e.getMessage(), request, null, e, false);
+        String msg = (e.getMessage() == null || e.getMessage().isBlank())
+                ? "Доступ запрещен"
+                : e.getMessage();
+
+        return build(HttpStatus.FORBIDDEN, msg, request, null, e, false);
     }
 
-    // 401 — неверный логин/пароль
     @ExceptionHandler(BadCredentialsException.class)
     public ResponseEntity<ApiErrorResponse> handleBadCredentials(
             BadCredentialsException e,
             HttpServletRequest request
     ) {
-        return build(HttpStatus.UNAUTHORIZED, "Bad credentials", request, null, e, false);
+        return build(HttpStatus.UNAUTHORIZED, MSG_BAD_CREDENTIALS, request, null, e, false);
     }
 
-    // 400 — неверные входные данные (например last4 не 4 цифры)
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ApiErrorResponse> handleIllegalArgument(
             IllegalArgumentException e,
             HttpServletRequest request
     ) {
-        return build(HttpStatus.BAD_REQUEST, e.getMessage(), request, null, e, false);
+        String msg = (e.getMessage() == null || e.getMessage().isBlank())
+                ? "Некорректные входные данные"
+                : e.getMessage();
+
+        return build(HttpStatus.BAD_REQUEST, msg, request, null, e, false);
     }
 
-    // 409 — конфликт по бизнес-состоянию (карта не ACTIVE, просрочена, недостаточно средств и т.д.)
     @ExceptionHandler(IllegalStateException.class)
     public ResponseEntity<ApiErrorResponse> handleIllegalState(
             IllegalStateException e,
             HttpServletRequest request
     ) {
-        return build(HttpStatus.CONFLICT, e.getMessage(), request, null, e, false);
+        String msg = (e.getMessage() == null || e.getMessage().isBlank())
+                ? "Конфликт состояния"
+                : e.getMessage();
+
+        return build(HttpStatus.CONFLICT, msg, request, null, e, false);
     }
 
-    // 500 — все остальное
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiErrorResponse> handleAny(
             Exception e,
             HttpServletRequest request
     ) {
-        return build(HttpStatus.INTERNAL_SERVER_ERROR, "Internal error", request, null, e, true);
+        return build(HttpStatus.INTERNAL_SERVER_ERROR, "Внутренняя ошибка сервера", request, null, e, true);
     }
 
     private ResponseEntity<ApiErrorResponse> build(

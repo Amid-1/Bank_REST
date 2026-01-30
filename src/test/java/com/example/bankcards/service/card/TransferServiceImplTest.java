@@ -166,15 +166,19 @@ class TransferServiceImplTest {
         UUID b = UUID.fromString("00000000-0000-0000-0000-000000000002");
 
         BankCard ca = BankCard.builder()
-                .id(a).owner(AppUser.builder().id(userId).build())
-                .status(BankCardStatus.ACTIVE).expirationDate(LocalDate.now().plusYears(1))
-                .balance(new BigDecimal("100.00"))
+                .id(a)
+                .owner(AppUser.builder().id(userId).build())
+                .status(BankCardStatus.ACTIVE)
+                .expirationDate(LocalDate.now().plusYears(1))
+                .balance(new BigDecimal("0.00"))
                 .build();
 
         BankCard cb = BankCard.builder()
-                .id(b).owner(AppUser.builder().id(userId).build())
-                .status(BankCardStatus.ACTIVE).expirationDate(LocalDate.now().plusYears(1))
-                .balance(new BigDecimal("0.00"))
+                .id(b)
+                .owner(AppUser.builder().id(userId).build())
+                .status(BankCardStatus.ACTIVE)
+                .expirationDate(LocalDate.now().plusYears(1))
+                .balance(new BigDecimal("100.00"))
                 .build();
 
         when(cardsRepository.lockByIdAndOwnerId(eq(a), eq(userId))).thenReturn(Optional.of(ca));

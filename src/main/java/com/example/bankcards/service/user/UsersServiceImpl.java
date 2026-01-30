@@ -1,84 +1,80 @@
 package com.example.bankcards.service.user;
 
-import com.example.bankcards.dto.user.*;
+import com.example.bankcards.dto.user.AdminPasswordResetRequest;
+import com.example.bankcards.dto.user.UserCreateRequest;
+import com.example.bankcards.dto.user.UserEnabledUpdateRequest;
+import com.example.bankcards.dto.user.UserResponse;
+import com.example.bankcards.dto.user.UserRoleUpdateRequest;
 import com.example.bankcards.entity.user.AppUser;
 import com.example.bankcards.entity.user.UserRole;
 import com.example.bankcards.repository.UsersRepository;
-import com.example.bankcards.service.user.mapper.UserMapper;
 import jakarta.persistence.EntityNotFoundException;
-import jakarta.transaction.Transactional;
-import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.UUID;
 
 @Service
-@RequiredArgsConstructor
-public class UsersServiceImpl implements UsersService {
+@Transactional
+public class UsersServiceImpl {
 
     private final UsersRepository usersRepository;
     private final PasswordEncoder passwordEncoder;
 
-    @Override
-    public UserResponse create(UserCreateRequest request) {
-        if (usersRepository.existsByEmail(request.email())) {
-            throw new IllegalStateException("User with email already exists");
+    public UsersServiceImpl(UsersRepository usersRepository, PasswordEncoder passwordEncoder) {
+        this.usersRepository = usersRepository;
+        this.passwordEncoder = passwordEncoder;
+    }
+
+    public UserResponse create(UserCreateRequest req) {
+        if (usersRepository.existsByEmail(req.email())) {
+            throw new IllegalStateException("Пользователь с email уже существует: " + req.email());
         }
 
         AppUser user = AppUser.builder()
-                .name(request.name())
-                .email(request.email())
-                .passwordHash(passwordEncoder.encode(request.password()))
+                .name(req.name())
+                .email(req.email())
+                .passwordHash(passwordEncoder.encode(req.password()))
                 .role(UserRole.ROLE_USER)
+                .enabled(true)
                 .build();
 
         AppUser saved = usersRepository.save(user);
-        return UserMapper.toDto(saved);
+        return toResponse(saved);
     }
 
-    @Override
-    public Page<UserResponse> getAll(Pageable pageable) {
-        return usersRepository.findAll(pageable).map(UserMapper::toDto);
-    }
-
-    @Override
-    @Transactional
-    public UserResponse updateRole(UUID userId, UserRoleUpdateRequest request) {
+    public void resetPassword(UUID userId, AdminPasswordResetRequest req) {
         AppUser user = usersRepository.findById(userId)
-                .orElseThrow(() -> new EntityNotFoundException("User not found: " + userId));
+                .orElseThrow(() -> new EntityNotFoundException("Пользователь не найден: " + userId));
 
-        user.setRole(request.role());
-        return UserMapper.toDto(user);
+        user.setPasswordHash(passwordEncoder.encode(req.newPassword()));
+        usersRepository.save(user);
     }
 
-    @Override
-    @Transactional
-    public UserResponse updateEnabled(UUID userId, UserEnabledUpdateRequest request) {
+    public UserResponse updateEnabled(UUID userId, UserEnabledUpdateRequest req) {
         AppUser user = usersRepository.findById(userId)
-                .orElseThrow(() -> new EntityNotFoundException("User not found: " + userId));
+                .orElseThrow(() -> new EntityNotFoundException("Пользователь не найден: " + userId));
 
-        user.setEnabled(request.enabled());
-        return UserMapper.toDto(user);
+        user.setEnabled(req.enabled());
+        AppUser saved = usersRepository.save(user);
+        return toResponse(saved);
     }
 
-    @Override
-    @Transactional
-    public void resetPassword(UUID userId, AdminPasswordResetRequest request) {
+    public UserResponse updateRole(UUID userId, UserRoleUpdateRequest req) {
         AppUser user = usersRepository.findById(userId)
-                .orElseThrow(() -> new EntityNotFoundException("User not found: " + userId));
+                .orElseThrow(() -> new EntityNotFoundException("Пользователь не найден: " + userId));
 
-        user.setPasswordHash(passwordEncoder.encode(request.newPassword()));
+        user.setRole(req.role());
+        AppUser saved = usersRepository.save(user);
+        return toResponse(saved);
     }
 
-    @Override
-    @Transactional
-    public void delete(UUID userId) {
-        if (!usersRepository.existsById(userId)) {
-            throw new EntityNotFoundException("User not found: " + userId);
-        }
-        usersRepository.deleteById(userId);
+    private UserResponse toResponse(AppUser u) {
+        return new UserResponse(
+                u.getId(),
+                u.getName(),
+                u.getEmail()
+        );
     }
 }
