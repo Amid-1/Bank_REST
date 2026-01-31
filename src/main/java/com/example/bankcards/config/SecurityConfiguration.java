@@ -55,7 +55,8 @@ public class SecurityConfiguration {
                         .requestMatchers(
                                 "/api/auth/**",
                                 "/swagger-ui.html", "/swagger-ui/**",
-                                "/v3/api-docs/**"
+                                "/v3/api-docs", "/v3/api-docs/**",
+                                "/v3/api-docs.yaml"
                         ).permitAll()
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .anyRequest().authenticated()
@@ -71,7 +72,6 @@ public class SecurityConfiguration {
             UserDetailsService userDetailsService,
             PasswordEncoder passwordEncoder
     ) {
-        // В Security 7.x это правильный вариант: ctor(UserDetailsService)
         DaoAuthenticationProvider provider = new DaoAuthenticationProvider(userDetailsService);
         provider.setPasswordEncoder(passwordEncoder);
         return provider;

@@ -1,5 +1,7 @@
 package com.example.bankcards.service.card;
 
+import com.example.bankcards.dto.card.BalanceResponse;
+import com.example.bankcards.dto.card.CardAdminUpdateRequest;
 import com.example.bankcards.dto.card.CardCreateRequest;
 import com.example.bankcards.dto.card.CardResponse;
 import com.example.bankcards.entity.card.BankCard;
@@ -41,68 +43,6 @@ public class CardsServiceImpl implements CardsService {
         this.panEncryptor = panEncryptor;
     }
 
-    @Override
-    public CardResponse createCard(CardCreateRequest req) {
-        AppUser owner = usersRepository.findById(req.ownerId())
-                .orElseThrow(() -> new EntityNotFoundException("Пользователь не найден: " + req.ownerId()));
-
-        String pan = normalizePan(req.cardNumber());
-        String last4 = pan.substring(pan.length() - 4);
-        String masked = "**** **** **** " + last4;
-
-        String panHash = hashEncoder.sha256Hex(pan);
-        if (cardsRepository.existsByPanHash(panHash)) {
-            throw new IllegalStateException("дубликат panHash: " + panHash);
-        }
-
-        String encrypted = panEncryptor.encrypt(pan);
-
-        BankCard card = BankCard.builder()
-                .owner(owner)
-                .expirationDate(req.expirationDate())
-                .status(BankCardStatus.ACTIVE)
-                .panHash(panHash)
-                .encryptedCardNumber(encrypted)
-                .maskedCardNumber(masked)
-                .deleted(false)
-                .build();
-
-        return toResponse(cardsRepository.save(card));
-    }
-
-    @Override
-    public CardResponse blockCard(UUID cardId) {
-        BankCard card = cardsRepository.findByIdAndDeletedFalse(cardId)
-                .orElseThrow(() -> new EntityNotFoundException("Карта не найдена: " + cardId));
-
-        card.setStatus(BankCardStatus.BLOCKED);
-        return toResponse(cardsRepository.save(card));
-    }
-
-    @Override
-    public CardResponse activateCard(UUID cardId) {
-        BankCard card = cardsRepository.findByIdAndDeletedFalse(cardId)
-                .orElseThrow(() -> new EntityNotFoundException("Карта не найдена: " + cardId));
-
-        if (CardStatusUtil.isExpired(card.getExpirationDate(), LocalDate.now())) {
-            throw new IllegalStateException("Нельзя активировать просроченную карту");
-        }
-
-        card.setStatus(BankCardStatus.ACTIVE);
-        return toResponse(cardsRepository.save(card));
-    }
-
-    // SOFT DELETE
-    @Override
-    public void deleteCard(UUID cardId) {
-        BankCard card = cardsRepository.findByIdAndDeletedFalse(cardId)
-                .orElseThrow(() -> new EntityNotFoundException("Карта не найдена: " + cardId));
-
-        card.setDeleted(true);
-        card.setStatus(BankCardStatus.BLOCKED); // опционально, но логично
-        cardsRepository.save(card);
-    }
-
     // USER
     @Override
     @Transactional(readOnly = true)
@@ -110,7 +50,32 @@ public class CardsServiceImpl implements CardsService {
         return searchCards(userId, status, last4, pageable);
     }
 
-    // ADMIN search
+    @Override
+    @Transactional(readOnly = true)
+    public CardResponse getMyCardById(UUID userId, UUID cardId) {
+        BankCard card = cardsRepository.findByIdAndDeletedFalse(cardId)
+                .orElseThrow(() -> new EntityNotFoundException("Карта не найдена: " + cardId));
+        if (!card.getOwner().getId().equals(userId)) {
+            throw new EntityNotFoundException("Карта не найдена: " + cardId);
+        }
+
+        return toResponse(card);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public BalanceResponse getBalance(UUID userId, UUID cardId) {
+        BankCard card = cardsRepository.findByIdAndDeletedFalse(cardId)
+                .orElseThrow(() -> new EntityNotFoundException("Карта не найдена: " + cardId));
+
+        if (!card.getOwner().getId().equals(userId)) {
+            throw new EntityNotFoundException("Карта не найдена: " + cardId);
+        }
+
+        return new BalanceResponse(card.getId(), card.getBalance());
+    }
+
+       // ADMIN: READ / SEARCH
     @Override
     @Transactional(readOnly = true)
     public Page<CardResponse> searchCards(UUID ownerId, BankCardStatus status, String last4, Pageable pageable) {
@@ -155,6 +120,104 @@ public class CardsServiceImpl implements CardsService {
         return cardsRepository.findAll(spec, pageable).map(this::toResponse);
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public CardResponse getAdminCardById(UUID cardId) {
+        BankCard card = cardsRepository.findByIdAndDeletedFalse(cardId)
+                .orElseThrow(() -> new EntityNotFoundException("Карта не найдена: " + cardId));
+        return toResponse(card);
+    }
+
+       // ADMIN: COMMANDS
+    @Override
+    public CardResponse createCard(CardCreateRequest req) {
+        AppUser owner = usersRepository.findById(req.ownerId())
+                .orElseThrow(() -> new EntityNotFoundException("Пользователь не найден: " + req.ownerId()));
+
+        String pan = normalizePan(req.cardNumber());
+        String last4 = pan.substring(pan.length() - 4);
+        String masked = "**** **** **** " + last4;
+
+        String panHash = hashEncoder.sha256Hex(pan);
+        if (cardsRepository.existsByPanHash(panHash)) {
+            throw new IllegalStateException("дубликат panHash: " + panHash);
+        }
+
+        String encrypted = panEncryptor.encrypt(pan);
+
+        BankCard card = BankCard.builder()
+                .owner(owner)
+                .expirationDate(req.expirationDate())
+                .status(BankCardStatus.ACTIVE)
+                .panHash(panHash)
+                .encryptedCardNumber(encrypted)
+                .maskedCardNumber(masked)
+                .deleted(false)
+                .build();
+
+        return toResponse(cardsRepository.save(card));
+    }
+
+    @Override
+    public CardResponse updateAdminCard(UUID cardId, CardAdminUpdateRequest req) {
+        BankCard card = cardsRepository.findByIdAndDeletedFalse(cardId)
+                .orElseThrow(() -> new EntityNotFoundException("Карта не найдена: " + cardId));
+
+        if (req.expirationDate() != null) {
+            card.setExpirationDate(req.expirationDate());
+        }
+
+        return toResponse(cardsRepository.save(card));
+    }
+
+    @Override
+    public CardResponse blockCard(UUID cardId) {
+        BankCard card = cardsRepository.findByIdAndDeletedFalse(cardId)
+                .orElseThrow(() -> new EntityNotFoundException("Карта не найдена: " + cardId));
+
+        card.setStatus(BankCardStatus.BLOCKED);
+        return toResponse(cardsRepository.save(card));
+    }
+
+    @Override
+    public CardResponse activateCard(UUID cardId) {
+        BankCard card = cardsRepository.findByIdAndDeletedFalse(cardId)
+                .orElseThrow(() -> new EntityNotFoundException("Карта не найдена: " + cardId));
+
+        if (CardStatusUtil.isExpired(card.getExpirationDate(), LocalDate.now())) {
+            throw new IllegalStateException("Нельзя активировать просроченную карту");
+        }
+
+        card.setStatus(BankCardStatus.ACTIVE);
+        return toResponse(cardsRepository.save(card));
+    }
+
+    // SOFT DELETE
+    @Override
+    public void deleteCard(UUID cardId) {
+        BankCard card = cardsRepository.findByIdAndDeletedFalse(cardId)
+                .orElseThrow(() -> new EntityNotFoundException("Карта не найдена: " + cardId));
+
+        card.setDeleted(true);
+        card.setStatus(BankCardStatus.BLOCKED); // опционально, но логично
+        cardsRepository.save(card);
+    }
+
+       // HELPERS
+    private CardResponse toResponse(BankCard c) {
+        LocalDate today = LocalDate.now();
+        BankCardStatus effective = CardStatusUtil.effectiveStatus(c, today);
+
+        return new CardResponse(
+                c.getId(),
+                c.getMaskedCardNumber(),
+                c.getExpirationDate(),
+                c.getBalance(),
+                effective,
+                c.getOwner().getId()
+        );
+    }
+
     private static String normalizePan(String pan) {
         if (pan == null) throw new IllegalArgumentException("cardNumber не должен быть null");
         String digits = pan.replaceAll("[^0-9]", "");
@@ -168,19 +231,5 @@ public class CardsServiceImpl implements CardsService {
         if (s.isEmpty()) return null;
         if (!s.matches("\\d{4}")) throw new IllegalArgumentException("last4 должен состоять ровно из 4 цифр");
         return s;
-    }
-
-    private CardResponse toResponse(BankCard c) {
-        LocalDate today = LocalDate.now();
-        BankCardStatus effective = CardStatusUtil.effectiveStatus(c, today);
-
-        return new CardResponse(
-                c.getId(),
-                c.getMaskedCardNumber(),
-                c.getExpirationDate(),
-                c.getBalance(),
-                effective,              // <-- ВАЖНО: всегда effective
-                c.getOwner().getId()
-        );
     }
 }

@@ -11,24 +11,19 @@ databaseChangeLog:
                   name: id
                   type: uuid
                   defaultValueComputed: gen_random_uuid()
-                  constraints:
-                    primaryKey: true
-                    nullable: false
+                  constraints: { primaryKey: true, nullable: false }
               - column:
                   name: card_id
                   type: uuid
-                  constraints:
-                    nullable: false
+                  constraints: { nullable: false }
               - column:
                   name: initiator_id
                   type: uuid
-                  constraints:
-                    nullable: false
+                  constraints: { nullable: false }
               - column:
                   name: status
                   type: varchar(30)
-                  constraints:
-                    nullable: false
+                  constraints: { nullable: false }
               - column:
                   name: reason
                   type: varchar(500)
@@ -36,8 +31,7 @@ databaseChangeLog:
                   name: created_at
                   type: timestamp
                   defaultValueComputed: CURRENT_TIMESTAMP
-                  constraints:
-                    nullable: false
+                  constraints: { nullable: false }
 
         - addForeignKeyConstraint:
             baseTableName: card_block_request
@@ -56,5 +50,9 @@ databaseChangeLog:
         - createIndex:
             tableName: card_block_request
             indexName: ix_blockreq_status
-            columns:
-              - column: { name: status }
+            columns: [ { column: { name: status } } ]
+
+        - createIndex:
+            tableName: card_block_request
+            indexName: ix_blockreq_card_id
+            columns: [ { column: { name: card_id } } ]

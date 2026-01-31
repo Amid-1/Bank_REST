@@ -1,1 +1,808 @@
-# Здесь будет OpenAPI описание всех доступных эндпоинтов и моделей данных.
+openapi: 3.1.0
+info:
+  title: Bank Rest Api
+  description: API системы управления банковскими картами
+  contact:
+    name: Dmitriy Suprunov
+    email: amid.supr@yandex.ru
+  version: 1.0.0
+servers:
+- url: http://localhost:8080
+  description: Generated server url
+paths:
+  /api/transfers:
+    post:
+      tags:
+      - Переводы (пользователь)
+      summary: Перевод между своими картами
+      operationId: transfer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TransferRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/TransferResponse"
+  /api/block-requests:
+    post:
+      tags:
+      - Заявки на блокировку (пользователь)
+      summary: Создать заявку на блокировку карты
+      operationId: create
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CardBlockRequestCreate"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/CardBlockRequestResponse"
+  /api/auth/login:
+    post:
+      tags:
+      - Аутентификация
+      summary: Аутентификация пользователя и выдача JWT
+      operationId: login
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/JwtResponse"
+  /api/admin/users:
+    get:
+      tags:
+      - admin-users-controller
+      operationId: getUsers
+      parameters:
+      - name: page
+        in: query
+        description: Zero-based page index (0..N)
+        required: false
+        schema:
+          type: integer
+          default: 0
+          minimum: 0
+      - name: size
+        in: query
+        description: The size of the page to be returned
+        required: false
+        schema:
+          type: integer
+          default: 20
+          minimum: 1
+      - name: sort
+        in: query
+        description: "Sorting criteria in the format: property,(asc|desc). Default\
+          \ sort order is ascending. Multiple sort criteria are supported."
+        required: false
+        schema:
+          type: array
+          items:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/PageUserResponse"
+    post:
+      tags:
+      - admin-users-controller
+      operationId: createUser
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserCreateRequest"
+        required: true
+      responses:
+        "201":
+          description: Created
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/UserResponse"
+  /api/admin/cards:
+    get:
+      tags:
+      - Карты (админ)
+      summary: Поиск карт (фильтры + пагинация)
+      operationId: search
+      parameters:
+      - name: ownerId
+        in: query
+        required: false
+        schema:
+          type: string
+          format: uuid
+      - name: status
+        in: query
+        required: false
+        schema:
+          type: string
+          enum:
+          - ACTIVE
+          - BLOCKED
+          - EXPIRED
+      - name: last4
+        in: query
+        required: false
+        schema:
+          type: string
+      - name: pageable
+        in: query
+        required: true
+        schema:
+          $ref: "#/components/schemas/Pageable"
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/PageCardResponse"
+    post:
+      tags:
+      - Карты (админ)
+      summary: Создать карту
+      operationId: create_1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CardCreateRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/CardResponse"
+  /api/admin/users/{id}/role:
+    patch:
+      tags:
+      - admin-users-controller
+      operationId: updateRole
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserRoleUpdateRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/UserResponse"
+  /api/admin/users/{id}/password:
+    patch:
+      tags:
+      - admin-users-controller
+      operationId: resetPassword
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminPasswordResetRequest"
+        required: true
+      responses:
+        "204":
+          description: No Content
+  /api/admin/users/{id}/enabled:
+    patch:
+      tags:
+      - admin-users-controller
+      operationId: updateEnabled
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserEnabledUpdateRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/UserResponse"
+  /api/admin/cards/{id}/block:
+    patch:
+      tags:
+      - Карты (админ)
+      summary: Заблокировать карту
+      operationId: block
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/CardResponse"
+  /api/admin/cards/{id}/activate:
+    patch:
+      tags:
+      - Карты (админ)
+      summary: Активировать карту
+      operationId: activate
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/CardResponse"
+  /api/admin/block-requests/{id}/reject:
+    patch:
+      tags:
+      - Заявки на блокировку (админ)
+      summary: Отклонить заявку (заявка - REJECTED)
+      operationId: reject
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+  /api/admin/block-requests/{id}/approve:
+    patch:
+      tags:
+      - Заявки на блокировку (админ)
+      summary: "Одобрить заявку (карта - BLOCKED, заявка - APPROVED)"
+      operationId: approve
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+  /api/cards:
+    get:
+      tags:
+      - Карты (пользователь)
+      summary: Список моих карт (фильтры + пагинация)
+      operationId: getMyCards
+      parameters:
+      - name: status
+        in: query
+        required: false
+        schema:
+          type: string
+          enum:
+          - ACTIVE
+          - BLOCKED
+          - EXPIRED
+      - name: last4
+        in: query
+        required: false
+        schema:
+          type: string
+      - name: pageable
+        in: query
+        required: true
+        schema:
+          $ref: "#/components/schemas/Pageable"
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/PageCardResponse"
+  /api/admin/block-requests:
+    get:
+      tags:
+      - Заявки на блокировку (админ)
+      summary: Список заявок по статусу
+      operationId: getAll
+      parameters:
+      - name: status
+        in: query
+        required: false
+        schema:
+          type: string
+          default: WAITING
+          enum:
+          - WAITING
+          - APPROVED
+          - REJECTED
+      - name: pageable
+        in: query
+        required: true
+        schema:
+          $ref: "#/components/schemas/Pageable"
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/PageCardBlockRequestResponse"
+  /api/admin/users/{id}:
+    delete:
+      tags:
+      - admin-users-controller
+      operationId: delete
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "204":
+          description: No Content
+  /api/admin/cards/{id}:
+    delete:
+      tags:
+      - Карты (админ)
+      summary: Удалить карту
+      operationId: delete_1
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+components:
+  schemas:
+    TransferRequest:
+      type: object
+      description: Запрос на перевод между своими картами
+      properties:
+        fromCardId:
+          type: string
+          format: uuid
+          description: ID карты списания
+        toCardId:
+          type: string
+          format: uuid
+          description: ID карты зачисления
+        amount:
+          type: number
+          description: Сумма перевода
+          example: 100.0
+      required:
+      - amount
+      - fromCardId
+      - toCardId
+    TransferResponse:
+      type: object
+      description: Ответ по переводу между своими картами
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: ID перевода
+        fromCardId:
+          type: string
+          format: uuid
+          description: ID карты списания
+        toCardId:
+          type: string
+          format: uuid
+          description: ID карты зачисления
+        amount:
+          type: number
+          description: Сумма перевода
+        createdAt:
+          type: string
+          format: date-time
+          description: Дата и время перевода
+        fromBalanceAfter:
+          type: number
+          description: Баланс карты списания после операции
+        toBalanceAfter:
+          type: number
+          description: Баланс карты зачисления после операции
+    CardBlockRequestCreate:
+      type: object
+      description: Запрос пользователя на блокировку карты
+      properties:
+        cardId:
+          type: string
+          format: uuid
+          description: ID карты
+          example: fc5855a2-58d8-4148-9a54-277f3bcb60d8
+        reason:
+          type: string
+          description: Причина
+          example: Утеряна карта
+          maxLength: 500
+          minLength: 0
+      required:
+      - cardId
+    CardBlockRequestResponse:
+      type: object
+      description: Ответ по заявке на блокировку
+      properties:
+        id:
+          type: string
+          format: uuid
+        cardId:
+          type: string
+          format: uuid
+        initiatorId:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum:
+          - WAITING
+          - APPROVED
+          - REJECTED
+        reason:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+    LoginRequest:
+      type: object
+      description: Запрос на аутентификацию
+      properties:
+        email:
+          type: string
+          description: Email
+          example: example@mail.ru
+          minLength: 1
+        password:
+          type: string
+          description: Пароль
+          example: qwerty_best_password
+          minLength: 1
+      required:
+      - email
+      - password
+    JwtResponse:
+      type: object
+      description: Ответ с JWT токеном доступа
+      properties:
+        token:
+          type: string
+          description: JWT access token
+    UserCreateRequest:
+      type: object
+      description: Запрос на создание пользователя
+      properties:
+        name:
+          type: string
+          description: Имя пользователя
+          example: Andy
+          maxLength: 50
+          minLength: 0
+        email:
+          type: string
+          description: Email
+          example: example@mail.ru
+          minLength: 1
+        password:
+          type: string
+          description: Пароль
+          example: qwerty_best_password
+          maxLength: 255
+          minLength: 10
+      required:
+      - email
+      - name
+      - password
+    UserResponse:
+      type: object
+      description: Пользователь
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: ID пользователя
+          example: fc5855a2-58d8-4148-9a54-277f3bcb60d8
+        name:
+          type: string
+          description: Имя пользователя
+          example: Andy
+        email:
+          type: string
+          description: Email
+          example: example@mail.ru
+    CardCreateRequest:
+      type: object
+      description: Запрос на создание карты (обычно админский)
+      properties:
+        cardNumber:
+          type: string
+          description: Номер карты
+          example: 4111111111111111
+          minLength: 1
+        expirationDate:
+          type: string
+          format: date
+          description: Дата окончания действия карты
+          example: 2035-08-11
+        ownerId:
+          type: string
+          format: uuid
+          description: ID владельца карты
+          example: 5545749c-5bb2-40a5-a049-52ecf74b2571
+      required:
+      - cardNumber
+      - expirationDate
+      - ownerId
+    CardResponse:
+      type: object
+      description: Ответ с информацией о карте
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: ID карты
+        maskedCardNumber:
+          type: string
+          description: Замаскированный номер
+          example: '**** **** **** 1111'
+        expirationDate:
+          type: string
+          format: date
+          description: Дата окончания действия
+          example: 2035-08-11
+        balance:
+          type: number
+          description: Баланс
+          example: 100.0
+        status:
+          type: string
+          description: Статус карты
+          enum:
+          - ACTIVE
+          - BLOCKED
+          - EXPIRED
+        ownerId:
+          type: string
+          format: uuid
+          description: ID владельца
+    UserRoleUpdateRequest:
+      type: object
+      description: Запрос на смену роли пользователя
+      properties:
+        role:
+          type: string
+          description: Новая роль
+          enum:
+          - ROLE_ADMIN
+          - ROLE_USER
+          example: ROLE_ADMIN
+      required:
+      - role
+    AdminPasswordResetRequest:
+      type: object
+      description: Сброс пароля пользователя администратором
+      properties:
+        newPassword:
+          type: string
+          description: Новый пароль
+          example: new_strong_password_123
+          maxLength: 255
+          minLength: 10
+      required:
+      - newPassword
+    UserEnabledUpdateRequest:
+      type: object
+      description: Запрос на включение/отключение пользователя
+      properties:
+        enabled:
+          type: boolean
+          description: Флаг активности аккаунта
+          example: false
+      required:
+      - enabled
+    Pageable:
+      type: object
+      properties:
+        page:
+          type: integer
+          format: int32
+          minimum: 0
+        size:
+          type: integer
+          format: int32
+          minimum: 1
+        sort:
+          type: array
+          items:
+            type: string
+    PageCardResponse:
+      type: object
+      properties:
+        totalElements:
+          type: integer
+          format: int64
+        totalPages:
+          type: integer
+          format: int32
+        pageable:
+          $ref: "#/components/schemas/PageableObject"
+        numberOfElements:
+          type: integer
+          format: int32
+        size:
+          type: integer
+          format: int32
+        content:
+          type: array
+          items:
+            $ref: "#/components/schemas/CardResponse"
+        number:
+          type: integer
+          format: int32
+        sort:
+          $ref: "#/components/schemas/SortObject"
+        first:
+          type: boolean
+        last:
+          type: boolean
+        empty:
+          type: boolean
+    PageableObject:
+      type: object
+      properties:
+        unpaged:
+          type: boolean
+        pageNumber:
+          type: integer
+          format: int32
+        paged:
+          type: boolean
+        pageSize:
+          type: integer
+          format: int32
+        offset:
+          type: integer
+          format: int64
+        sort:
+          $ref: "#/components/schemas/SortObject"
+    SortObject:
+      type: object
+      properties:
+        unsorted:
+          type: boolean
+        sorted:
+          type: boolean
+        empty:
+          type: boolean
+    PageUserResponse:
+      type: object
+      properties:
+        totalElements:
+          type: integer
+          format: int64
+        totalPages:
+          type: integer
+          format: int32
+        pageable:
+          $ref: "#/components/schemas/PageableObject"
+        numberOfElements:
+          type: integer
+          format: int32
+        size:
+          type: integer
+          format: int32
+        content:
+          type: array
+          items:
+            $ref: "#/components/schemas/UserResponse"
+        number:
+          type: integer
+          format: int32
+        sort:
+          $ref: "#/components/schemas/SortObject"
+        first:
+          type: boolean
+        last:
+          type: boolean
+        empty:
+          type: boolean
+    PageCardBlockRequestResponse:
+      type: object
+      properties:
+        totalElements:
+          type: integer
+          format: int64
+        totalPages:
+          type: integer
+          format: int32
+        pageable:
+          $ref: "#/components/schemas/PageableObject"
+        numberOfElements:
+          type: integer
+          format: int32
+        size:
+          type: integer
+          format: int32
+        content:
+          type: array
+          items:
+            $ref: "#/components/schemas/CardBlockRequestResponse"
+        number:
+          type: integer
+          format: int32
+        sort:
+          $ref: "#/components/schemas/SortObject"
+        first:
+          type: boolean
+        last:
+          type: boolean
+        empty:
+          type: boolean
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

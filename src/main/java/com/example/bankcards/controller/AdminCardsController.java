@@ -1,5 +1,6 @@
 package com.example.bankcards.controller;
 
+import com.example.bankcards.dto.card.CardAdminUpdateRequest;
 import com.example.bankcards.dto.card.CardCreateRequest;
 import com.example.bankcards.dto.card.CardResponse;
 import com.example.bankcards.entity.card.BankCardStatus;
@@ -8,6 +9,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.web.bind.annotation.*;
@@ -52,8 +54,23 @@ public class AdminCardsController {
             @RequestParam(required = false) UUID ownerId,
             @RequestParam(required = false) BankCardStatus status,
             @RequestParam(required = false) String last4,
-            Pageable pageable
+            @ParameterObject Pageable pageable
     ) {
         return cardsService.searchCards(ownerId, status, last4, pageable);
+    }
+
+    @GetMapping("/{id}")
+    @Operation(summary = "Получить карту по id")
+    public CardResponse getById(@PathVariable UUID id) {
+        return cardsService.getAdminCardById(id);
+    }
+
+    @PatchMapping("/{id}")
+    @Operation(summary = "Обновить атрибуты карты (ограниченно)")
+    public CardResponse update(
+            @PathVariable UUID id,
+            @RequestBody @Valid CardAdminUpdateRequest req
+    ) {
+        return cardsService.updateAdminCard(id, req);
     }
 }
