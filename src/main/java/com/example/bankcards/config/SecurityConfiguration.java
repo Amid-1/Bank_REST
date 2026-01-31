@@ -40,31 +40,31 @@ public class SecurityConfiguration {
     public SecurityFilterChain securityFilterChain(
             HttpSecurity http,
             AuthenticationProvider authenticationProvider
-    ) throws Exception {
-
-        return http
-                .csrf(AbstractHttpConfigurer::disable)
-                .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-
-                .exceptionHandling(eh -> eh
-                        .authenticationEntryPoint(authenticationEntryPoint())
-                        .accessDeniedHandler(accessDeniedHandler())
-                )
-
-                .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(
-                                "/api/auth/**",
-                                "/swagger-ui.html", "/swagger-ui/**",
-                                "/v3/api-docs", "/v3/api-docs/**",
-                                "/v3/api-docs.yaml"
-                        ).permitAll()
-                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
-                        .anyRequest().authenticated()
-                )
-
-                .authenticationProvider(authenticationProvider)
-                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
-                .build();
+    ) {
+        try {
+            return http
+                    .csrf(AbstractHttpConfigurer::disable)
+                    .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                    .exceptionHandling(eh -> eh
+                            .authenticationEntryPoint(authenticationEntryPoint())
+                            .accessDeniedHandler(accessDeniedHandler())
+                    )
+                    .authorizeHttpRequests(auth -> auth
+                            .requestMatchers(
+                                    "/api/auth/**",
+                                    "/swagger-ui.html", "/swagger-ui/**",
+                                    "/v3/api-docs", "/v3/api-docs/**",
+                                    "/v3/api-docs.yaml"
+                            ).permitAll()
+                            .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                            .anyRequest().authenticated()
+                    )
+                    .authenticationProvider(authenticationProvider)
+                    .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
+                    .build();
+        } catch (Exception e) {
+            throw new IllegalStateException("Ошибка при сборке цепочки фильтров безопасности (SecurityFilterChain)", e);
+        }
     }
 
     @Bean
@@ -83,8 +83,12 @@ public class SecurityConfiguration {
     }
 
     @Bean
-    public AuthenticationManager authenticationManager(AuthenticationConfiguration cfg) throws Exception {
-        return cfg.getAuthenticationManager();
+    public AuthenticationManager authenticationManager(AuthenticationConfiguration cfg) {
+        try {
+            return cfg.getAuthenticationManager();
+        } catch (Exception e) {
+            throw new IllegalStateException("Ошибка при получении менеджера аутентификации (AuthenticationManager)", e);
+        }
     }
 
     @Bean

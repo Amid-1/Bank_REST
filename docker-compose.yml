@@ -5,6 +5,7 @@
 services:
   card-db:
     image: postgres:17
+    env_file: .env
     container_name: card-db
     ports:
       - "5433:5432"
@@ -37,14 +38,11 @@ services:
       ENCRYPTOR_SALT: "${ENCRYPTOR_SALT}"
       APP_HASHENCODER_PEPPER: "${APP_HASHENCODER_PEPPER}"
 
-      # Hibernate не генерит схему (только проверка после Liquibase)
       SPRING_JPA_HIBERNATE_DDL_AUTO: "none"
 
-      # Liquibase включен и changelog задан явно
       SPRING_LIQUIBASE_ENABLED: "true"
       SPRING_LIQUIBASE_CHANGE_LOG: "classpath:db/migration/db.changelog-master.yaml"
 
-      # Успокаиваем логи (переопределяет application.yml при желании)
       LOGGING_LEVEL_ROOT: "INFO"
       LOGGING_LEVEL_ORG_SPRINGFRAMEWORK: "INFO"
       LOGGING_LEVEL_LIQUIBASE: "INFO"

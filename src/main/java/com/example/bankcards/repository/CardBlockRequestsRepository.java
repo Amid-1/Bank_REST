@@ -9,9 +9,6 @@ import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
 import java.util.UUID;
 
-/**
- * Репозиторий заявок на блокировку карты.
- */
 public interface CardBlockRequestsRepository extends JpaRepository<CardBlockRequest, UUID>,
         JpaSpecificationExecutor<CardBlockRequest> {
 

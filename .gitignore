@@ -60,7 +60,10 @@ lib/
 .run/
 
 .env
+.env.*
+!.env.example
 /volumes/
+volumes
 .idea/
 
 
