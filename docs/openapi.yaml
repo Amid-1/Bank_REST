@@ -843,6 +843,9 @@ components:
     PageableObject:
       type: object
       properties:
+        pageNumber:
+          type: integer
+          format: int32
         paged:
           type: boolean
         pageSize:
@@ -850,9 +853,6 @@ components:
           format: int32
         unpaged:
           type: boolean
-        pageNumber:
-          type: integer
-          format: int32
         offset:
           type: integer
           format: int64
@@ -861,9 +861,9 @@ components:
     SortObject:
       type: object
       properties:
-        unsorted:
-          type: boolean
         sorted:
+          type: boolean
+        unsorted:
           type: boolean
         empty:
           type: boolean
