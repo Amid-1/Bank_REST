@@ -84,7 +84,6 @@ public class CardsServiceImpl implements CardsService {
 
         Specification<BankCard> spec = (root, query, cb) -> cb.conjunction();
 
-        // не показываем удаленные
         spec = spec.and((root, query, cb) -> cb.isFalse(root.get("deleted")));
 
         if (ownerId != null) {
