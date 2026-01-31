@@ -15,6 +15,8 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.UUID;
 
+import static com.example.bankcards.util.SortParser.parseSort;
+
 @Tag(name = "Заявки на блокировку (админ)")
 @RestController
 @RequestMapping("/api/admin/block-requests")
@@ -31,11 +33,7 @@ public class AdminCardBlockRequestsController {
             @RequestParam(defaultValue = "20") int size,
             @RequestParam(required = false) List<String> sort
     ) {
-        Sort s = Sort.unsorted();
-        if (sort != null && !sort.isEmpty()) {
-            s = Sort.by(sort.stream().map(Sort.Order::by).toList());
-        }
-
+        Sort s = parseSort(sort);
         Pageable pageable = PageRequest.of(page, size, s);
         return service.getAll(status, pageable);
     }

@@ -151,24 +151,20 @@ paths:
           type: string
       - name: page
         in: query
-        description: Zero-based page index (0..N)
         required: false
         schema:
           type: integer
+          format: int32
           default: 0
-          minimum: 0
       - name: size
         in: query
-        description: The size of the page to be returned
         required: false
         schema:
           type: integer
+          format: int32
           default: 20
-          minimum: 1
       - name: sort
         in: query
-        description: "Sorting criteria in the format: property,(asc|desc). Default\
-          \ sort order is ascending. Multiple sort criteria are supported."
         required: false
         schema:
           type: array
@@ -573,6 +569,7 @@ components:
           type: number
           description: Сумма перевода
           example: 100.0
+          minimum: 0.01
       required:
       - amount
       - fromCardId
@@ -719,9 +716,11 @@ components:
       properties:
         cardNumber:
           type: string
-          description: Номер карты
-          example: 4111111111111111
-          minLength: 1
+          description: "Номер карты (допустимы цифры, пробелы и дефисы)"
+          example: 4111
+          maxLength: 23
+          minLength: 16
+          pattern: "^[0-9\\s-]+$"
         expirationDate:
           type: string
           format: date
@@ -823,10 +822,6 @@ components:
         numberOfElements:
           type: integer
           format: int32
-        first:
-          type: boolean
-        last:
-          type: boolean
         size:
           type: integer
           format: int32
@@ -839,18 +834,22 @@ components:
           format: int32
         sort:
           $ref: "#/components/schemas/SortObject"
+        first:
+          type: boolean
+        last:
+          type: boolean
         empty:
           type: boolean
     PageableObject:
       type: object
       properties:
-        unpaged:
-          type: boolean
         paged:
           type: boolean
         pageSize:
           type: integer
           format: int32
+        unpaged:
+          type: boolean
         pageNumber:
           type: integer
           format: int32
@@ -890,10 +889,6 @@ components:
         numberOfElements:
           type: integer
           format: int32
-        first:
-          type: boolean
-        last:
-          type: boolean
         size:
           type: integer
           format: int32
@@ -906,6 +901,10 @@ components:
           format: int32
         sort:
           $ref: "#/components/schemas/SortObject"
+        first:
+          type: boolean
+        last:
+          type: boolean
         empty:
           type: boolean
     PageCardBlockRequestResponse:
@@ -922,10 +921,6 @@ components:
         numberOfElements:
           type: integer
           format: int32
-        first:
-          type: boolean
-        last:
-          type: boolean
         size:
           type: integer
           format: int32
@@ -938,6 +933,10 @@ components:
           format: int32
         sort:
           $ref: "#/components/schemas/SortObject"
+        first:
+          type: boolean
+        last:
+          type: boolean
         empty:
           type: boolean
   securitySchemes:

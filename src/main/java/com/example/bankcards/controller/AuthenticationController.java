@@ -18,7 +18,7 @@ public class AuthenticationController {
     private final AuthService authService;
 
     @PostMapping("/login")
-    @Operation(summary = "Аутентификация пользователя и выдача JWT")
+    @Operation(summary = "Аутентификация пользователя и выдача JWT", security = {})
     public JwtResponse login(@RequestBody @Valid LoginRequest request) {
         return authService.login(request);
     }

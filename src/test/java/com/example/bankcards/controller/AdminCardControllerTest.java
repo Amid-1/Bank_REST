@@ -8,7 +8,6 @@ import com.example.bankcards.exception.ApiExceptionHandler;
 import com.example.bankcards.security.filter.JwtAuthFilter;
 import com.example.bankcards.service.auth.JwtService;
 import com.example.bankcards.service.card.CardsService;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
@@ -36,11 +35,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class AdminCardControllerTest {
 
     @Autowired MockMvc mockMvc;
-    @Autowired ObjectMapper objectMapper;
 
-    @MockitoBean
-    CardsService cardsService;
-
+    @MockitoBean CardsService cardsService;
     @MockitoBean JwtService jwtService;
     @MockitoBean UserDetailsService userDetailsService;
 
@@ -53,7 +49,7 @@ class AdminCardControllerTest {
 
     @Test
     @WithMockUser(roles = "ADMIN")
-    void createCard_returns200() throws Exception {
+    void createCard_returns201() throws Exception {
         UUID cardId = UUID.randomUUID();
         UUID ownerId = UUID.randomUUID();
 
@@ -73,7 +69,7 @@ class AdminCardControllerTest {
         mockMvc.perform(post("/api/admin/cards")
                         .contentType(APPLICATION_JSON)
                         .content(body))
-                .andExpect(status().isOk())
+                .andExpect(status().isCreated())
                 .andExpect(content().contentTypeCompatibleWith(APPLICATION_JSON))
                 .andExpect(jsonPath("$.id").value(cardId.toString()))
                 .andExpect(jsonPath("$.maskedCardNumber").value("**** **** **** 1111"));
