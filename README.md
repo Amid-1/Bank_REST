@@ -62,7 +62,6 @@ cp .env.example .env
 
 ### 3) Собрать проект и запустить контейнеры
 ```bash
-mvn -DskipTests clean package
 docker compose up -d --build
 ```
 
@@ -88,7 +87,7 @@ Authorization: Bearer <token>
 ```
 
 Админ-пользователь может создаваться при старте приложения из переменных окружения:
-`APP_ADMIN_EMAIL`, `APP_ADMIN_PASSWORD`, `APP_ADMIN_NAME` (см. `.env`).
+`APP_ADMIN_EMAIL`, `APP_ADMIN_PASSWORD`, `APP_ADMIN_NAME`.
 
 ---
 
@@ -103,23 +102,11 @@ docker compose down
 
 ⚠️ Удалит БД и все данные (volume).
 
-**Windows (PowerShell / cmd)**
-```bat
-docker compose down -v --remove-orphans
-rmdir /S /Q .\volumes\postgres
-mvn -DskipTests clean package
-docker compose up -d --build
-```
-
 **Linux/macOS**
 ```bash
 docker compose down -v --remove-orphans
 rm -rf ./volumes/postgres
-mvn -DskipTests clean package
-docker compose up -d --build
 ```
-
----
 
 ## Примечания по секретам
 

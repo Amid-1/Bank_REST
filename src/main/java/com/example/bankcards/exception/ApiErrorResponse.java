@@ -9,6 +9,7 @@ import java.util.List;
 @Schema(description = "Единый формат ошибки API")
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record ApiErrorResponse(
+
         @Schema(description = "Время ошибки (UTC offset)")
         OffsetDateTime timestamp,
 
@@ -24,11 +25,13 @@ public record ApiErrorResponse(
         @Schema(description = "Путь запроса", example = "/api/transfers")
         String path,
 
-        @Schema(description = "Ошибки по полям (для валидации)")
-        List<FieldErrorItem> fieldErrors
+        @Schema(description = "Ошибки по полям/параметрам (для валидации)")
+        List<Violation> violations
 ) {
-    public record FieldErrorItem(
-            @Schema(example = "email") String field,
-            @Schema(example = "Некорректный email") String message
+    public record Violation(
+            @Schema(description = "Поле/параметр, где ошибка", example = "email")
+            String field,
+            @Schema(description = "Сообщение об ошибке", example = "Некорректный email")
+            String message
     ) {}
 }

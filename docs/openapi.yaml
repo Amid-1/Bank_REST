@@ -152,6 +152,8 @@ paths:
         required: false
         schema:
           type: string
+          maxLength: 4
+          minLength: 4
       - name: page
         in: query
         required: false
@@ -617,7 +619,7 @@ components:
           example: fc5855a2-58d8-4148-9a54-277f3bcb60d8
         reason:
           type: string
-          description: Причина
+          description: Причина (необязательно)
           example: Утеряна карта
           maxLength: 500
           minLength: 0
@@ -653,14 +655,17 @@ components:
       properties:
         email:
           type: string
+          format: email
           description: Email
           example: example@mail.ru
-          minLength: 1
+          maxLength: 254
+          minLength: 0
         password:
           type: string
           description: Пароль
           example: qwerty_best_password
-          minLength: 1
+          maxLength: 255
+          minLength: 0
       required:
       - email
       - password
@@ -678,20 +683,22 @@ components:
         name:
           type: string
           description: Имя пользователя
-          example: Andy
+          example: Andrey
           maxLength: 50
           minLength: 0
         email:
           type: string
+          format: email
           description: Email
           example: example@mail.ru
-          minLength: 1
+          maxLength: 254
+          minLength: 0
         password:
           type: string
           description: Пароль
           example: qwerty_best_password
           maxLength: 255
-          minLength: 10
+          minLength: 4
       required:
       - email
       - name
@@ -719,11 +726,12 @@ components:
       properties:
         cardNumber:
           type: string
-          description: "Номер карты (допустимы цифры, пробелы и дефисы)"
+          description: "Номер карты: 16 цифр. Допустимы пробелы или дефисы между г\
+            руппами по 4 цифры."
           example: 4111
-          maxLength: 23
+          maxLength: 19
           minLength: 16
-          pattern: "^[0-9\\s-]+$"
+          pattern: "^\\d{4}(?:[ -]?\\d{4}){3}$"
         expirationDate:
           type: string
           format: date
@@ -792,7 +800,7 @@ components:
           description: Новый пароль
           example: new_strong_password_123
           maxLength: 255
-          minLength: 10
+          minLength: 4
       required:
       - newPassword
     UserEnabledUpdateRequest:
@@ -851,8 +859,6 @@ components:
           format: int64
         sort:
           $ref: "#/components/schemas/SortObject"
-        unpaged:
-          type: boolean
         paged:
           type: boolean
         pageNumber:
@@ -861,6 +867,8 @@ components:
         pageSize:
           type: integer
           format: int32
+        unpaged:
+          type: boolean
     SortObject:
       type: object
       properties:

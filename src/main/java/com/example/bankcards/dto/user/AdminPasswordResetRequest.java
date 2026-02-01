@@ -6,8 +6,9 @@ import jakarta.validation.constraints.Size;
 
 @Schema(description = "Сброс пароля пользователя администратором")
 public record AdminPasswordResetRequest(
-        @NotBlank
-        @Size(min = 10, max = 255)
-        @Schema(description = "Новый пароль", example = "new_strong_password_123")
+
+        @Schema(description = "Новый пароль", example = "new_strong_password_123", minLength = 10, maxLength = 255)
+        @NotBlank(message = "newPassword обязателен")
+        @Size(min = 4, max = 255, message = "newPassword должен быть длиной 4-255 символов")
         String newPassword
 ) {}

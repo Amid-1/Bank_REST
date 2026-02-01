@@ -8,6 +8,7 @@ import com.example.bankcards.service.card.CardsService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Size;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -34,7 +35,7 @@ public class AdminCardsController {
     @Operation(summary = "Создать карту")
     public ResponseEntity<CardResponse> create(@RequestBody @Valid CardCreateRequest request) {
         CardResponse created = cardsService.createCard(request);
-        return ResponseEntity.status(HttpStatus.CREATED).body(created); // 201
+        return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 
     @GetMapping
@@ -42,7 +43,7 @@ public class AdminCardsController {
     public Page<CardResponse> search(
             @RequestParam(required = false) UUID ownerId,
             @RequestParam(required = false) BankCardStatus status,
-            @RequestParam(required = false) String last4,
+            @RequestParam(required = false) @Size(min = 4, max = 4) String last4,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
             @RequestParam(required = false) List<String> sort

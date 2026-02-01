@@ -7,7 +7,6 @@ import com.example.bankcards.exception.ApiExceptionHandler;
 import com.example.bankcards.security.filter.JwtAuthFilter;
 import com.example.bankcards.service.auth.AuthService;
 import com.example.bankcards.service.auth.JwtService;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
@@ -28,7 +27,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class AuthControllerTest {
 
     @Autowired MockMvc mockMvc;
-    @Autowired ObjectMapper objectMapper;
 
     @MockitoBean AuthService authService;
 
@@ -74,8 +72,8 @@ class AuthControllerTest {
     @Test
     void login_invalidEmail_returns400() throws Exception {
         String body = """
-                {"email":"not-email","password":"qwerty_best_password"}
-                """;
+            {"email":"not-email","password":"qwerty_best_password"}
+            """;
 
         mockMvc.perform(post("/api/auth/login")
                         .contentType(APPLICATION_JSON)
@@ -84,15 +82,15 @@ class AuthControllerTest {
                 .andExpect(content().contentTypeCompatibleWith(APPLICATION_JSON))
                 .andExpect(jsonPath("$.status").value(400))
                 .andExpect(jsonPath("$.message").value("Ошибка валидации"))
-                .andExpect(jsonPath("$.fieldErrors").isArray())
-                .andExpect(jsonPath("$.fieldErrors[0].field").exists());
+                .andExpect(jsonPath("$.violations").isArray())
+                .andExpect(jsonPath("$.violations[0].field").value("email"));
     }
 
     @Test
     void login_blankPassword_returns400() throws Exception {
         String body = """
-                {"email":"user@mail.ru","password":""}
-                """;
+            {"email":"user@mail.ru","password":""}
+            """;
 
         mockMvc.perform(post("/api/auth/login")
                         .contentType(APPLICATION_JSON)
@@ -101,6 +99,8 @@ class AuthControllerTest {
                 .andExpect(content().contentTypeCompatibleWith(APPLICATION_JSON))
                 .andExpect(jsonPath("$.status").value(400))
                 .andExpect(jsonPath("$.message").value("Ошибка валидации"))
-                .andExpect(jsonPath("$.fieldErrors").isArray());
+                .andExpect(jsonPath("$.violations").isArray())
+                .andExpect(jsonPath("$.violations[0].field").value("password"));
     }
+
 }
