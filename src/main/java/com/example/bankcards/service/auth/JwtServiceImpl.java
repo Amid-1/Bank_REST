@@ -9,26 +9,63 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
 import javax.crypto.SecretKey;
+import java.nio.charset.StandardCharsets;
 import java.util.Date;
 
 @Service
 public class JwtServiceImpl implements JwtService {
 
+    private static final int MIN_HS256_KEY_BYTES = 32;
+
     private final SecretKey key;
     private final long expirationMs;
 
     public JwtServiceImpl(
-            @Value("${jwt.secret}") String secretBase64,
+            @Value("${jwt.secret}") String jwtSecret,
             @Value("${jwt.expiration}") long expirationMs
     ) {
-        byte[] keyBytes = Decoders.BASE64.decode(secretBase64.trim());
-        if (keyBytes.length < 32) {
+        byte[] keyBytes = parseSecret(jwtSecret);
+
+        if (keyBytes.length < MIN_HS256_KEY_BYTES) {
             throw new IllegalStateException(
-                    "jwt.secret must decode to at least 32 bytes for HS256, got " + keyBytes.length
+                    "Секрет JWT слишком короткий: для HS256 нужно минимум " + MIN_HS256_KEY_BYTES
+                            + " байт, получено " + keyBytes.length + " байт"
             );
         }
+
         this.key = Keys.hmacShaKeyFor(keyBytes);
         this.expirationMs = expirationMs;
+    }
+
+    static byte[] parseSecret(String secret) {
+        if (secret == null || secret.isBlank()) {
+            throw new IllegalStateException("Секрет JWT не задан (jwt.secret пустой)");
+        }
+
+        String v = secret.trim();
+
+        if (v.startsWith("base64:")) {
+            String payload = v.substring("base64:".length()).trim();
+            if (payload.isEmpty()) {
+                throw new IllegalStateException("Секрет JWT в формате base64 задан пустым");
+            }
+
+            try {
+                return Decoders.BASE64.decode(payload);
+            } catch (RuntimeException e) {
+                throw new IllegalStateException("Секрет JWT в формате base64 задан некорректно", e);
+            }
+        }
+
+        if (v.startsWith("raw:")) {
+            String payload = v.substring("raw:".length()).trim();
+            if (payload.isEmpty()) {
+                throw new IllegalStateException("Секрет JWT в формате raw задан пустым");
+            }
+            return payload.getBytes(StandardCharsets.UTF_8);
+        }
+
+        return v.getBytes(StandardCharsets.UTF_8);
     }
 
     @Override

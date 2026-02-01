@@ -63,11 +63,13 @@ public class CardBlockRequestsServiceImpl implements CardBlockRequestsService {
         return CardBlockRequestMapper.toResponse(saved);
     }
 
-    @Override
     @Transactional(readOnly = true)
     public Page<CardBlockRequestResponse> getAll(CardBlockStatus status, Pageable pageable) {
-        return blockRequestsRepository.findAllByStatus(status, pageable)
-                .map(CardBlockRequestMapper::toResponse);
+        Page<CardBlockRequest> page = (status == null)
+                ? blockRequestsRepository.findAll(pageable)
+                : blockRequestsRepository.findAllByStatus(status, pageable);
+
+        return page.map(CardBlockRequestMapper::toResponse);
     }
 
     @Override

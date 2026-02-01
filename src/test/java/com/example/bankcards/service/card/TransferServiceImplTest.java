@@ -260,4 +260,29 @@ class TransferServiceImplTest {
         inOrder.verify(cardsRepository).lockByIdAndOwnerId(eq(a), eq(userId));
         inOrder.verify(cardsRepository).lockByIdAndOwnerId(eq(b), eq(userId));
     }
+
+    @Test
+    void transfer_sameCard_throwsIllegalArgument_andDoesNotTouchRepo() {
+        UUID userId = UUID.randomUUID();
+        UUID cardId = UUID.fromString("00000000-0000-0000-0000-000000000001");
+
+        assertThatThrownBy(() -> service.transfer(userId, new TransferRequest(cardId, cardId, new BigDecimal("1.00"))))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("fromCardId и toCardId должны быть разными");
+
+        verifyNoInteractions(cardsRepository, transferRecordsRepository);
+    }
+
+    @Test
+    void transfer_amountNotPositive_throwsIllegalArgument_andDoesNotTouchRepo() {
+        UUID userId = UUID.randomUUID();
+        UUID fromId = UUID.fromString("00000000-0000-0000-0000-000000000001");
+        UUID toId   = UUID.fromString("00000000-0000-0000-0000-000000000002");
+
+        assertThatThrownBy(() -> service.transfer(userId, new TransferRequest(fromId, toId, new BigDecimal("0.00"))))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("amount должен быть > 0");
+
+        verifyNoInteractions(cardsRepository, transferRecordsRepository);
+    }
 }

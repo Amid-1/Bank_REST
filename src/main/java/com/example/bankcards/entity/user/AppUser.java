@@ -1,5 +1,6 @@
 package com.example.bankcards.entity.user;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.Id;
@@ -58,6 +59,7 @@ public class AppUser implements UserDetails {
         return email;
     }
 
+    @JsonIgnore
     @Override
     public String getPassword() {
         return passwordHash;

@@ -22,6 +22,6 @@ public class UserDetailsServiceImpl implements UserDetailsService {
         String email = EmailNormalizer.normalize(username);
 
         return usersRepository.findByEmailLower(email)
-                .orElseThrow(() -> new UsernameNotFoundException("User not found: " + email));
+                .orElseThrow(() -> new UsernameNotFoundException("User не найден " + email));
     }
 }
