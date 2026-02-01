@@ -6,6 +6,7 @@ import com.example.bankcards.dto.user.UserEnabledUpdateRequest;
 import com.example.bankcards.dto.user.UserRoleUpdateRequest;
 import com.example.bankcards.entity.user.AppUser;
 import com.example.bankcards.entity.user.UserRole;
+import com.example.bankcards.repository.CardsRepository;
 import com.example.bankcards.repository.UsersRepository;
 import jakarta.persistence.EntityNotFoundException;
 import org.junit.jupiter.api.Test;
@@ -20,6 +21,8 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
@@ -28,8 +31,11 @@ class UserServiceImplTest {
 
     @Mock UsersRepository usersRepository;
     @Mock PasswordEncoder passwordEncoder;
+    @Mock CardsRepository cardsRepository;
 
     @InjectMocks UsersServiceImpl service;
+
+    @InjectMocks UsersServiceImpl usersService;
 
     @Test
     void create_defaultRoleIsUser_andPasswordEncoded_andEmailNormalized() {
@@ -129,5 +135,42 @@ class UserServiceImplTest {
                 .isInstanceOf(EntityNotFoundException.class);
 
         verify(usersRepository, never()).save(any());
+    }
+
+    @Test
+    void delete_whenUserHasActiveCards_throw409() {
+        UUID userId = UUID.randomUUID();
+        when(cardsRepository.existsByOwnerIdAndDeletedFalse(userId)).thenReturn(true);
+
+        IllegalStateException ex = assertThrows(IllegalStateException.class, () -> usersService.delete(userId));
+        assertEquals("Нельзя удалить пользователя: есть активные карты", ex.getMessage());
+
+        verify(usersRepository, never()).delete(any());
+    }
+
+    @Test
+    void delete_whenUserHasOnlyDeletedCards_throw409() {
+        UUID userId = UUID.randomUUID();
+        when(cardsRepository.existsByOwnerIdAndDeletedFalse(userId)).thenReturn(false);
+        when(cardsRepository.existsByOwnerId(userId)).thenReturn(true);
+
+        IllegalStateException ex = assertThrows(IllegalStateException.class, () -> usersService.delete(userId));
+        assertEquals("Нельзя удалить пользователя: есть карты (в том числе удаленные)", ex.getMessage());
+
+        verify(usersRepository, never()).delete(any());
+    }
+
+    @Test
+    void delete_whenNoCards_deletesUser() {
+        UUID userId = UUID.randomUUID();
+        when(cardsRepository.existsByOwnerIdAndDeletedFalse(userId)).thenReturn(false);
+        when(cardsRepository.existsByOwnerId(userId)).thenReturn(false);
+
+        AppUser user = AppUser.builder().id(userId).email("a@b.c").name("A").passwordHash("x").role(UserRole.ROLE_USER).build();
+        when(usersRepository.findById(userId)).thenReturn(Optional.of(user));
+
+        usersService.delete(userId);
+
+        verify(usersRepository).delete(user);
     }
 }

@@ -3,6 +3,7 @@ package com.example.bankcards.service.user;
 import com.example.bankcards.dto.user.*;
 import com.example.bankcards.entity.user.AppUser;
 import com.example.bankcards.entity.user.UserRole;
+import com.example.bankcards.repository.CardsRepository;   // ✅ добавили
 import com.example.bankcards.repository.UsersRepository;
 import com.example.bankcards.service.user.mapper.UserMapper;
 import com.example.bankcards.util.EmailNormalizer;
@@ -22,6 +23,7 @@ import java.util.UUID;
 public class UsersServiceImpl implements UsersService {
 
     private final UsersRepository usersRepository;
+    private final CardsRepository cardsRepository;
     private final PasswordEncoder passwordEncoder;
 
     @Override
@@ -104,6 +106,14 @@ public class UsersServiceImpl implements UsersService {
 
     @Override
     public void delete(UUID userId) {
+        if (cardsRepository.existsByOwnerIdAndDeletedFalse(userId)) {
+            throw new IllegalStateException("Нельзя удалить пользователя: есть активные карты");
+        }
+
+        if (cardsRepository.existsByOwnerId(userId)) {
+            throw new IllegalStateException("Нельзя удалить пользователя: есть карты (в том числе удаленные)");
+        }
+
         AppUser user = usersRepository.findById(userId)
                 .orElseThrow(() -> new EntityNotFoundException("Пользователь не найден: " + userId));
 

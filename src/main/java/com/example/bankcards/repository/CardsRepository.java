@@ -19,6 +19,10 @@ public interface CardsRepository extends JpaRepository<BankCard, UUID>, JpaSpeci
 
     Optional<BankCard> findByIdAndOwnerIdAndDeletedFalse(UUID id, UUID ownerId);
 
+    boolean existsByOwnerIdAndDeletedFalse(UUID ownerId);
+
+    boolean existsByOwnerId(UUID ownerId);
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("""
            select c from BankCard c
