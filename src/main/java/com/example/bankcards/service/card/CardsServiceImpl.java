@@ -11,10 +11,7 @@ import com.example.bankcards.repository.CardsRepository;
 import com.example.bankcards.repository.UsersRepository;
 import com.example.bankcards.service.card.mapper.CardMapper;
 import com.example.bankcards.service.card.spec.CardsSpecifications;
-import com.example.bankcards.util.CardMasker;
-import com.example.bankcards.util.CardStatusUtil;
-import com.example.bankcards.util.PanEncryptor;
-import com.example.bankcards.util.PepperHashEncoder;
+import com.example.bankcards.util.*;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -113,12 +110,18 @@ public class CardsServiceImpl implements CardsService {
         AppUser owner = usersRepository.findById(req.ownerId())
                 .orElseThrow(() -> new EntityNotFoundException("Пользователь не найден: " + req.ownerId()));
 
-        String pan = normalizePan(req.cardNumber());
+        String pan = PanNormalizer.normalize(req.cardNumber());
+
+        if (pan.length() < 13 || pan.length() > 19) {
+            throw new IllegalArgumentException("Некорректная длина номера карты");
+        }
+
         String masked = CardMasker.mask(pan);
 
         String panHash = hashEncoder.sha256Hex(pan);
+
         if (cardsRepository.existsByPanHash(panHash)) {
-            throw new IllegalStateException("дубликат panHash: " + panHash);
+            throw new IllegalStateException("Карта с таким номером уже существует");
         }
 
         String encrypted = panEncryptor.encrypt(pan);
@@ -184,14 +187,6 @@ public class CardsServiceImpl implements CardsService {
         card.setDeleted(true);
         card.setStatus(BankCardStatus.BLOCKED);
         cardsRepository.save(card);
-    }
-
-    // HELPERS
-    private static String normalizePan(String pan) {
-        if (pan == null) throw new IllegalArgumentException("cardNumber не должен быть null");
-        String digits = pan.replaceAll("[^0-9]", "");
-        if (digits.length() < 4) throw new IllegalArgumentException("cardNumber слишком короткий");
-        return digits;
     }
 
     private static String normalizeLast4OrNull(String last4) {

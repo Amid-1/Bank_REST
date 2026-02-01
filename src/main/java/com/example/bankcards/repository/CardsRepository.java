@@ -15,9 +15,9 @@ public interface CardsRepository extends JpaRepository<BankCard, UUID>, JpaSpeci
 
     boolean existsByPanHash(String panHash);
 
-    Optional<BankCard> findByIdAndOwnerId(UUID id, UUID ownerId);
-
     Optional<BankCard> findByIdAndDeletedFalse(UUID id);
+
+    Optional<BankCard> findByIdAndOwnerIdAndDeletedFalse(UUID id, UUID ownerId);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("""
@@ -28,6 +28,4 @@ public interface CardsRepository extends JpaRepository<BankCard, UUID>, JpaSpeci
            """)
     Optional<BankCard> lockByIdAndOwnerId(@Param("id") UUID id,
                                           @Param("ownerId") UUID ownerId);
-
-
 }

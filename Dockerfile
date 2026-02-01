@@ -1,13 +1,11 @@
-FROM amazoncorretto:21-alpine AS builder
-WORKDIR /application
-COPY target/*.jar app.jar
-RUN java -Djarmode=layertools -jar app.jar extract
+FROM maven:3.9-eclipse-temurin-21 AS build
+WORKDIR /app
+COPY pom.xml .
+COPY src ./src
+RUN mvn -DskipTests package
 
-FROM amazoncorretto:21-alpine
-WORKDIR /application
-COPY --from=builder /application/dependencies/ ./
-COPY --from=builder /application/snapshot-dependencies/ ./
-COPY --from=builder /application/spring-boot-loader/ ./
-COPY --from=builder /application/application/ ./
+FROM eclipse-temurin:21-jre
+WORKDIR /app
+COPY --from=build /app/target/*.jar app.jar
 EXPOSE 8080
-ENTRYPOINT ["java","org.springframework.boot.loader.launch.JarLauncher"]
+ENTRYPOINT ["java","-jar","app.jar"]

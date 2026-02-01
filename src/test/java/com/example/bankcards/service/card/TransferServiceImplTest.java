@@ -7,6 +7,7 @@ import com.example.bankcards.entity.card.TransferRecord;
 import com.example.bankcards.entity.user.AppUser;
 import com.example.bankcards.repository.CardsRepository;
 import com.example.bankcards.repository.TransferRecordsRepository;
+import jakarta.persistence.EntityNotFoundException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InOrder;
@@ -34,10 +35,11 @@ class TransferServiceImplTest {
     @InjectMocks TransferServiceImpl service;
 
     @Test
-    void transfer_success_balancesUpdated_andRecordCreated() {
+    void transfer_success_balancesUpdated_andRecordSaved() {
         UUID userId = UUID.randomUUID();
-        UUID fromId = UUID.randomUUID();
-        UUID toId = UUID.randomUUID();
+
+        UUID fromId = UUID.fromString("00000000-0000-0000-0000-000000000001");
+        UUID toId   = UUID.fromString("00000000-0000-0000-0000-000000000002");
 
         BankCard from = BankCard.builder()
                 .id(fromId)
@@ -58,16 +60,17 @@ class TransferServiceImplTest {
         when(cardsRepository.lockByIdAndOwnerId(eq(fromId), eq(userId))).thenReturn(Optional.of(from));
         when(cardsRepository.lockByIdAndOwnerId(eq(toId), eq(userId))).thenReturn(Optional.of(to));
 
-        when(transferRecordsRepository.save(any(TransferRecord.class)))
-                .thenAnswer(inv -> {
-                    TransferRecord r = inv.getArgument(0);
-                    r.setId(UUID.randomUUID());
-                    r.setCreatedAt(LocalDateTime.now());
-                    return r;
-                });
-
+        when(transferRecordsRepository.save(any(TransferRecord.class))).thenAnswer(inv -> {
+            TransferRecord r = inv.getArgument(0);
+            r.setId(UUID.randomUUID());
+            r.setCreatedAt(LocalDateTime.now());
+            return r;
+        });
 
         var resp = service.transfer(userId, new TransferRequest(fromId, toId, new BigDecimal("25.00")));
+
+        assertThat(from.getBalance()).isEqualByComparingTo("75.00");
+        assertThat(to.getBalance()).isEqualByComparingTo("35.00");
 
         assertThat(resp.amount()).isEqualByComparingTo("25.00");
         assertThat(resp.fromBalanceAfter()).isEqualByComparingTo("75.00");
@@ -77,10 +80,11 @@ class TransferServiceImplTest {
     }
 
     @Test
-    void transfer_insufficientFunds_returnsIllegalState() {
+    void transfer_insufficientFunds_throwsIllegalState_withExactMessage() {
         UUID userId = UUID.randomUUID();
-        UUID fromId = UUID.randomUUID();
-        UUID toId = UUID.randomUUID();
+
+        UUID fromId = UUID.fromString("00000000-0000-0000-0000-000000000001");
+        UUID toId   = UUID.fromString("00000000-0000-0000-0000-000000000002");
 
         BankCard from = BankCard.builder()
                 .id(fromId)
@@ -103,28 +107,21 @@ class TransferServiceImplTest {
 
         assertThatThrownBy(() -> service.transfer(userId, new TransferRequest(fromId, toId, new BigDecimal("25.00"))))
                 .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("Недостаточно средств");
+                .hasMessage("Недостаточно средств");
 
         verify(transferRecordsRepository, never()).save(any());
+        assertThat(from.getBalance()).isEqualByComparingTo("10.00");
+        assertThat(to.getBalance()).isEqualByComparingTo("0.00");
     }
 
     @Test
-    void transfer_fromEqualsTo_returnsIllegalArgument() {
+    void transfer_fromCardNotActive_throwsIllegalState_withExactMessage() {
         UUID userId = UUID.randomUUID();
-        UUID id = UUID.randomUUID();
 
-        assertThatThrownBy(() -> service.transfer(userId, new TransferRequest(id, id, new BigDecimal("1.00"))))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("должны быть разными");
-    }
+        UUID fromId = UUID.fromString("00000000-0000-0000-0000-000000000001");
+        UUID toId   = UUID.fromString("00000000-0000-0000-0000-000000000002");
 
-    @Test
-    void transfer_blockedOrExpired_returnsIllegalState() {
-        UUID userId = UUID.randomUUID();
-        UUID fromId = UUID.randomUUID();
-        UUID toId = UUID.randomUUID();
-
-        BankCard fromBlocked = BankCard.builder()
+        BankCard from = BankCard.builder()
                 .id(fromId)
                 .owner(AppUser.builder().id(userId).build())
                 .status(BankCardStatus.BLOCKED)
@@ -132,7 +129,7 @@ class TransferServiceImplTest {
                 .balance(new BigDecimal("100.00"))
                 .build();
 
-        BankCard toActive = BankCard.builder()
+        BankCard to = BankCard.builder()
                 .id(toId)
                 .owner(AppUser.builder().id(userId).build())
                 .status(BankCardStatus.ACTIVE)
@@ -140,28 +137,94 @@ class TransferServiceImplTest {
                 .balance(new BigDecimal("0.00"))
                 .build();
 
-        when(cardsRepository.lockByIdAndOwnerId(eq(fromId), eq(userId))).thenReturn(Optional.of(fromBlocked));
-        when(cardsRepository.lockByIdAndOwnerId(eq(toId), eq(userId))).thenReturn(Optional.of(toActive));
+        when(cardsRepository.lockByIdAndOwnerId(eq(fromId), eq(userId))).thenReturn(Optional.of(from));
+        when(cardsRepository.lockByIdAndOwnerId(eq(toId), eq(userId))).thenReturn(Optional.of(to));
 
         assertThatThrownBy(() -> service.transfer(userId, new TransferRequest(fromId, toId, new BigDecimal("1.00"))))
                 .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("не в статусе ACTIVE");
+                .hasMessage("Карта не в статусе ACTIVE: " + fromId);
+
+        verify(transferRecordsRepository, never()).save(any());
     }
 
     @Test
-    void transfer_scaleMoreThan2_returnsIllegalArgument() {
+    void transfer_toCardExpired_throwsIllegalState_withExactMessage() {
         UUID userId = UUID.randomUUID();
-        UUID fromId = UUID.randomUUID();
-        UUID toId = UUID.randomUUID();
 
-        assertThatThrownBy(() -> service.transfer(userId, new TransferRequest(fromId, toId, new BigDecimal("1.001"))))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("не более 2 знаков");
+        UUID fromId = UUID.fromString("00000000-0000-0000-0000-000000000001");
+        UUID toId   = UUID.fromString("00000000-0000-0000-0000-000000000002");
+
+        BankCard from = BankCard.builder()
+                .id(fromId)
+                .owner(AppUser.builder().id(userId).build())
+                .status(BankCardStatus.ACTIVE)
+                .expirationDate(LocalDate.now().plusYears(1))
+                .balance(new BigDecimal("100.00"))
+                .build();
+
+        BankCard toExpired = BankCard.builder()
+                .id(toId)
+                .owner(AppUser.builder().id(userId).build())
+                .status(BankCardStatus.ACTIVE)
+                .expirationDate(LocalDate.now().minusDays(1))
+                .balance(new BigDecimal("0.00"))
+                .build();
+
+        when(cardsRepository.lockByIdAndOwnerId(eq(fromId), eq(userId))).thenReturn(Optional.of(from));
+        when(cardsRepository.lockByIdAndOwnerId(eq(toId), eq(userId))).thenReturn(Optional.of(toExpired));
+
+        assertThatThrownBy(() -> service.transfer(userId, new TransferRequest(fromId, toId, new BigDecimal("1.00"))))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage("Карта просрочена: " + toId);
+
+        verify(transferRecordsRepository, never()).save(any());
+    }
+
+    @Test
+    void transfer_toCardNotOwned_repoReturnsEmpty_throwsEntityNotFound_withExactMessage() {
+        UUID userId = UUID.randomUUID();
+
+        UUID fromId = UUID.fromString("00000000-0000-0000-0000-000000000001");
+        UUID toId   = UUID.fromString("00000000-0000-0000-0000-000000000002");
+
+        BankCard from = BankCard.builder()
+                .id(fromId)
+                .owner(AppUser.builder().id(userId).build())
+                .status(BankCardStatus.ACTIVE)
+                .expirationDate(LocalDate.now().plusYears(1))
+                .balance(new BigDecimal("100.00"))
+                .build();
+
+        when(cardsRepository.lockByIdAndOwnerId(eq(fromId), eq(userId))).thenReturn(Optional.of(from));
+        when(cardsRepository.lockByIdAndOwnerId(eq(toId), eq(userId))).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.transfer(userId, new TransferRequest(fromId, toId, new BigDecimal("1.00"))))
+                .isInstanceOf(EntityNotFoundException.class)
+                .hasMessage("Карта не найдена: " + toId);
+
+        verify(transferRecordsRepository, never()).save(any());
+    }
+
+    @Test
+    void transfer_fromCardNotOwned_repoReturnsEmpty_throwsEntityNotFound_withExactMessage() {
+        UUID userId = UUID.randomUUID();
+
+        UUID fromId = UUID.fromString("00000000-0000-0000-0000-000000000001");
+        UUID toId   = UUID.fromString("00000000-0000-0000-0000-000000000002");
+
+        when(cardsRepository.lockByIdAndOwnerId(eq(fromId), eq(userId))).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.transfer(userId, new TransferRequest(fromId, toId, new BigDecimal("1.00"))))
+                .isInstanceOf(EntityNotFoundException.class)
+                .hasMessage("Карта не найдена: " + fromId);
+
+        verify(transferRecordsRepository, never()).save(any());
     }
 
     @Test
     void transfer_locksInStableOrder_avoidsDeadlocks() {
         UUID userId = UUID.randomUUID();
+
         UUID a = UUID.fromString("00000000-0000-0000-0000-000000000001");
         UUID b = UUID.fromString("00000000-0000-0000-0000-000000000002");
 
@@ -170,7 +233,7 @@ class TransferServiceImplTest {
                 .owner(AppUser.builder().id(userId).build())
                 .status(BankCardStatus.ACTIVE)
                 .expirationDate(LocalDate.now().plusYears(1))
-                .balance(new BigDecimal("0.00"))
+                .balance(new BigDecimal("50.00"))
                 .build();
 
         BankCard cb = BankCard.builder()
@@ -178,7 +241,7 @@ class TransferServiceImplTest {
                 .owner(AppUser.builder().id(userId).build())
                 .status(BankCardStatus.ACTIVE)
                 .expirationDate(LocalDate.now().plusYears(1))
-                .balance(new BigDecimal("100.00"))
+                .balance(new BigDecimal("50.00"))
                 .build();
 
         when(cardsRepository.lockByIdAndOwnerId(eq(a), eq(userId))).thenReturn(Optional.of(ca));
@@ -190,7 +253,6 @@ class TransferServiceImplTest {
                     r.setCreatedAt(LocalDateTime.now());
                     return r;
                 });
-
 
         service.transfer(userId, new TransferRequest(b, a, new BigDecimal("10.00")));
 

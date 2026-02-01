@@ -34,7 +34,7 @@ public class CardBlockRequestsServiceImpl implements CardBlockRequestsService {
     @Transactional
     public CardBlockRequestResponse create(UUID userId, CardBlockRequestCreate dto) {
 
-        BankCard card = cardsRepository.findByIdAndOwnerId(dto.cardId(), userId)
+        BankCard card = cardsRepository.findByIdAndOwnerIdAndDeletedFalse(dto.cardId(), userId)
                 .orElseThrow(() -> new AccessDeniedException("Карта не найдена или не принадлежит пользователю"));
 
         if (card.getStatus() != BankCardStatus.ACTIVE) {
@@ -80,8 +80,10 @@ public class CardBlockRequestsServiceImpl implements CardBlockRequestsService {
             throw new IllegalStateException("Заявка не находится в статусе WAITING");
         }
 
-        BankCard card = cardsRepository.findById(req.getCard().getId())
-                .orElseThrow(() -> new EntityNotFoundException("Карта не найдена: " + req.getCard().getId()));
+        BankCard card = cardsRepository.findByIdAndDeletedFalse(req.getCard().getId())
+                .orElseThrow(() -> new EntityNotFoundException(
+                        "Карта не найдена или удалена: " + req.getCard().getId()
+                ));
 
         card.setStatus(BankCardStatus.BLOCKED);
         req.setStatus(CardBlockStatus.APPROVED);

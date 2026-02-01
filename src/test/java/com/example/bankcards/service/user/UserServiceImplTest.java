@@ -7,6 +7,7 @@ import com.example.bankcards.dto.user.UserRoleUpdateRequest;
 import com.example.bankcards.entity.user.AppUser;
 import com.example.bankcards.entity.user.UserRole;
 import com.example.bankcards.repository.UsersRepository;
+import jakarta.persistence.EntityNotFoundException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -14,8 +15,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
-
-import jakarta.persistence.EntityNotFoundException;
 
 import java.util.Optional;
 import java.util.UUID;
@@ -39,7 +38,6 @@ class UserServiceImplTest {
 
         when(usersRepository.existsByEmailLower(normalizedEmail)).thenReturn(false);
         when(passwordEncoder.encode("very_strong_password")).thenReturn("ENC");
-
         when(usersRepository.save(any(AppUser.class))).thenAnswer(inv -> inv.getArgument(0));
 
         var resp = service.create(new UserCreateRequest("U", rawEmail, "very_strong_password"));
@@ -64,6 +62,8 @@ class UserServiceImplTest {
         assertThatThrownBy(() -> service.create(new UserCreateRequest("U", "U@MAIL.RU", "very_strong_password")))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("уже существует");
+
+        verify(usersRepository, never()).save(any());
     }
 
     @Test
@@ -76,10 +76,12 @@ class UserServiceImplTest {
 
         when(usersRepository.findById(id)).thenReturn(Optional.of(user));
         when(passwordEncoder.encode("new_strong_password_123")).thenReturn("NEW_HASH");
+        when(usersRepository.save(any(AppUser.class))).thenAnswer(inv -> inv.getArgument(0));
 
         service.resetPassword(id, new AdminPasswordResetRequest("new_strong_password_123"));
 
         assertThat(user.getPasswordHash()).isEqualTo("NEW_HASH");
+        verify(usersRepository).save(user);
     }
 
     @Test
@@ -91,11 +93,13 @@ class UserServiceImplTest {
                 .build();
 
         when(usersRepository.findById(id)).thenReturn(Optional.of(user));
+        when(usersRepository.save(any(AppUser.class))).thenAnswer(inv -> inv.getArgument(0));
 
         var resp = service.updateEnabled(id, new UserEnabledUpdateRequest(false));
 
         assertThat(user.isEnabled()).isFalse();
         assertThat(resp.id()).isEqualTo(id);
+        verify(usersRepository).save(user);
     }
 
     @Test
@@ -107,11 +111,13 @@ class UserServiceImplTest {
                 .build();
 
         when(usersRepository.findById(id)).thenReturn(Optional.of(user));
+        when(usersRepository.save(any(AppUser.class))).thenAnswer(inv -> inv.getArgument(0));
 
         var resp = service.updateRole(id, new UserRoleUpdateRequest(UserRole.ROLE_ADMIN));
 
         assertThat(user.getRole()).isEqualTo(UserRole.ROLE_ADMIN);
         assertThat(resp.id()).isEqualTo(id);
+        verify(usersRepository).save(user);
     }
 
     @Test
@@ -121,5 +127,7 @@ class UserServiceImplTest {
 
         assertThatThrownBy(() -> service.updateEnabled(id, new UserEnabledUpdateRequest(false)))
                 .isInstanceOf(EntityNotFoundException.class);
+
+        verify(usersRepository, never()).save(any());
     }
 }
