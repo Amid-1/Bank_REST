@@ -37,7 +37,7 @@ public class TransferRecord {
     @JoinColumn(name = "from_card_id", nullable = false)
     private BankCard fromCard;
 
-    @ManyToOne(optional = false)
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "to_card_id", nullable = false)
     private BankCard toCard;
 

@@ -100,7 +100,7 @@ docker compose down
 
 ## Полный сброс окружения (с нуля)
 
-⚠️ Удалит БД и все данные (volume).
+Удалит БД и все данные (volume).
 
 **Linux/macOS**
 ```bash
@@ -111,7 +111,7 @@ rm -rf ./volumes/postgres
 ## Примечания по секретам
 
 В `.env.example` указаны dev-значения, чтобы проект запускался "из коробки".
-Для реального окружения (prod) замените как минимум:
+Для реального окружения (prod) заменить как минимум:
 - `JWT_SECRET`
 - `ENCRYPTOR_PASSWORD`, `ENCRYPTOR_SALT`
 - `APP_HASHENCODER_PEPPER`
